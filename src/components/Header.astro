@@ -1,1 +1,6 @@
-<header class="nav"><a class="brand" href="#inicio" aria-label="Eon Nova Studios, inicio"><span class="brand-icon">✳</span><span>EON NOVA<small>STUDIOS</small></span></a><nav aria-label="Principal"><a href="#universos">Universos</a><a href="#studio">El estudio</a></nav><button class="nav-play" data-reel><span>▶</span> Motion lab</button></header>
+---
+import {home, privacy, languages} from '../i18n';
+const {lang = 'es', legal = false} = Astro.props;
+const base = home(lang);
+---
+<header class="nav"><a class="brand" href={base + '#inicio'} aria-label="Eon Nova Studios, inicio"><span class="brand-icon">✳</span><span>EON NOVA<small>STUDIOS</small></span></a><nav aria-label="Principal"><a href={base + '#universos'}>Universos</a><a href={base + '#servicios'}>Servicios</a><a href={base + '#studio'}>El estudio</a><a href={base + '#contacto'}>Contacto</a></nav><div class="languages" aria-label="Language">{languages.map(l => <a href={legal ? privacy(l) : home(l)} lang={l} hreflang={l} aria-current={l === lang ? 'page' : undefined}>{l.toUpperCase()}</a>)}</div></header>

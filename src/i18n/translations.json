@@ -1,0 +1,554 @@
+{
+  "Universos": {
+    "en": "Universes",
+    "fr": "Univers"
+  },
+  "El estudio": {
+    "en": "The studio",
+    "fr": "Le studio"
+  },
+  "Servicios": {
+    "en": "Services",
+    "fr": "Services"
+  },
+  "Contacto": {
+    "en": "Contact",
+    "fr": "Contact"
+  },
+  "Principal": {
+    "en": "Main navigation",
+    "fr": "Navigation principale"
+  },
+  "Eon Nova Studios, inicio": {
+    "en": "Eon Nova Studios, home",
+    "fr": "Eon Nova Studios, accueil"
+  },
+  "DISEÑO DIGITAL & ANIMACIÓN": {
+    "en": "DIGITAL DESIGN & ANIMATION",
+    "fr": "DESIGN DIGITAL & ANIMATION"
+  },
+  "DISEÑO QUE TOMA VIDA": {
+    "en": "DESIGN THAT COMES ALIVE",
+    "fr": "LE DESIGN PREND VIE"
+  },
+  "Las ideas<br>no se quedan<br><em>quietas.</em>": {
+    "en": "Ideas<br>never stand<br><em>still.</em>",
+    "fr": "Les idées<br>prennent<br><em>vie.</em>"
+  },
+  "Personajes que sienten. Mundos que respiran.<br>Historias que empiezan con un solo frame.": {
+    "en": "Characters that feel. Worlds that breathe.<br>Stories that begin with a single frame.",
+    "fr": "Des personnages sensibles. Des mondes vivants.<br>Des histoires qui commencent par une image."
+  },
+  "Entrar al motion lab": {
+    "en": "Enter the motion lab",
+    "fr": "Entrer dans le motion lab"
+  },
+  "SCROLL PARA EXPLORAR": {
+    "en": "SCROLL TO EXPLORE",
+    "fr": "DÉFILER POUR EXPLORER"
+  },
+  "Pausar movimiento": {
+    "en": "Pause motion",
+    "fr": "Suspendre le mouvement"
+  },
+  "Activar movimiento": {
+    "en": "Enable motion",
+    "fr": "Activer le mouvement"
+  },
+  "Movimiento pausado": {
+    "en": "Motion paused",
+    "fr": "Mouvement suspendu"
+  },
+  "Continuar": {
+    "en": "Resume",
+    "fr": "Reprendre"
+  },
+  "Pausar": {
+    "en": "Pause",
+    "fr": "Pause"
+  },
+  "01 Ondas": {
+    "en": "01 Waves",
+    "fr": "01 Ondes"
+  },
+  "02 Órbitas": {
+    "en": "02 Orbits",
+    "fr": "02 Orbites"
+  },
+  "03 Flujo": {
+    "en": "03 Flow",
+    "fr": "03 Flux"
+  },
+  "Estilo de animación del encabezado": {
+    "en": "Hero animation style",
+    "fr": "Style d’animation de l’accueil"
+  },
+  "Escultura generativa animada de líneas luminosas. Tres exploraciones: ondas, órbitas y flujo.": {
+    "en": "Animated generative sculpture of luminous lines. Three explorations: waves, orbits and flow.",
+    "fr": "Sculpture générative animée de lignes lumineuses. Trois explorations : ondes, orbites et flux."
+  },
+  "IMAGINAR ✳ CREAR ✳ ANIMAR ✳ EXPLORAR": {
+    "en": "IMAGINE ✳ CREATE ✳ ANIMATE ✳ EXPLORE",
+    "fr": "IMAGINER ✳ CRÉER ✳ ANIMER ✳ EXPLORER"
+  },
+  "01 / UNIVERSOS CREATIVOS": {
+    "en": "01 / CREATIVE UNIVERSES",
+    "fr": "01 / UNIVERS CRÉATIFS"
+  },
+  "Una imaginación.<br><span>Infinitas dimensiones.</span>": {
+    "en": "One imagination.<br><span>Infinite dimensions.</span>",
+    "fr": "Une imagination.<br><span>Des dimensions infinies.</span>"
+  },
+  "Del primer trazo a la última escena.<br>Exploraciones procedurales de forma y movimiento.": {
+    "en": "From the first line to the final scene.<br>Procedural explorations of form and motion.",
+    "fr": "Du premier trait à la dernière scène.<br>Explorations procédurales de la forme et du mouvement."
+  },
+  "Explorar disciplinas": {
+    "en": "Explore disciplines",
+    "fr": "Explorer les disciplines"
+  },
+  "Animación 2D": {
+    "en": "2D animation",
+    "fr": "Animation 2D"
+  },
+  "Animación 3D": {
+    "en": "3D animation",
+    "fr": "Animation 3D"
+  },
+  "Cortometrajes": {
+    "en": "Short films",
+    "fr": "Courts métrages"
+  },
+  "Series animadas": {
+    "en": "Animated series",
+    "fr": "Séries animées"
+  },
+  "ANIMACIÓN 2D": {
+    "en": "2D ANIMATION",
+    "fr": "ANIMATION 2D"
+  },
+  "ANIMACIÓN 3D": {
+    "en": "3D ANIMATION",
+    "fr": "ANIMATION 3D"
+  },
+  "CORTOMETRAJES": {
+    "en": "SHORT FILMS",
+    "fr": "COURTS MÉTRAGES"
+  },
+  "SERIES ANIMADAS": {
+    "en": "ANIMATED SERIES",
+    "fr": "SÉRIES ANIMÉES"
+  },
+  "Exploración animada interactiva de formas y partículas": {
+    "en": "Interactive animated exploration of shapes and particles",
+    "fr": "Exploration animée interactive de formes et de particules"
+  },
+  "ESTUDIO": {
+    "en": "STUDY",
+    "fr": "ÉTUDE"
+  },
+  "TRAZO & RITMO": {
+    "en": "LINE & RHYTHM",
+    "fr": "TRAIT & RYTHME"
+  },
+  "Ampliar exploración animada": {
+    "en": "Expand animated exploration",
+    "fr": "Agrandir l’exploration animée"
+  },
+  "Todo comienza con una línea.": {
+    "en": "Everything begins with a line.",
+    "fr": "Tout commence par une ligne."
+  },
+  "El trazo<br>cobra vida.": {
+    "en": "The line<br>comes alive.",
+    "fr": "Le trait<br>prend vie."
+  },
+  "Forma, ritmo y personalidad. Un espacio para explorar el movimiento, el dibujo y la expresión cuadro a cuadro.": {
+    "en": "Form, rhythm and personality. A space to explore movement, drawing and expression frame by frame.",
+    "fr": "Forme, rythme et personnalité. Un espace pour explorer le mouvement, le dessin et l’expression image par image."
+  },
+  "Expresión": {
+    "en": "Expression",
+    "fr": "Expression"
+  },
+  "Ritmo de la animación": {
+    "en": "Animation speed",
+    "fr": "Vitesse de l’animation"
+  },
+  "Ver exploración en pantalla completa": {
+    "en": "View exploration in full screen",
+    "fr": "Voir l’exploration en plein écran"
+  },
+  "EL MOVIMIENTO ES UN LENGUAJE.": {
+    "en": "MOVEMENT IS A LANGUAGE.",
+    "fr": "LE MOUVEMENT EST UN LANGAGE."
+  },
+  "Y cada historia encuentra el suyo.": {
+    "en": "And every story finds its own.",
+    "fr": "Et chaque histoire trouve le sien."
+  },
+  "Exploraciones en movimiento": {
+    "en": "Explorations in motion",
+    "fr": "Explorations en mouvement"
+  },
+  "Cerrar motion lab": {
+    "en": "Close motion lab",
+    "fr": "Fermer le motion lab"
+  },
+  "TRAZO.": {
+    "en": "LINE.",
+    "fr": "TRAIT."
+  },
+  "Siguiente estudio": {
+    "en": "Next study",
+    "fr": "Étude suivante"
+  },
+  "Exploraciones procedurales de la maqueta · No representan proyectos de portfolio": {
+    "en": "Procedural concept explorations · These are not portfolio projects",
+    "fr": "Explorations procédurales de la maquette · Ces visuels ne sont pas des projets de portfolio"
+  },
+  "02 / EL ESTUDIO": {
+    "en": "02 / THE STUDIO",
+    "fr": "02 / LE STUDIO"
+  },
+  "Diseño con intención.<br><span>Historias en<br>movimiento.</span>": {
+    "en": "Design with purpose.<br><span>Stories in<br>motion.</span>",
+    "fr": "Du design qui a du sens.<br><span>Des histoires en<br>mouvement.</span>"
+  },
+  "DISEÑO & ANIMACIÓN": {
+    "en": "DESIGN & ANIMATION",
+    "fr": "DESIGN & ANIMATION"
+  },
+  "Un estudio de diseño digital y animación. Ideas con identidad, imágenes con intención.": {
+    "en": "A digital design and animation studio. Ideas with identity, images with purpose.",
+    "fr": "Un studio de design digital et d’animation. Des idées singulières, des images porteuses de sens."
+  },
+  "Exploramos el dibujo, el volumen y el tiempo para dar forma a historias visuales. Del diseño digital a la animación 2D y 3D, cada proyecto comienza con una mirada propia.": {
+    "en": "We explore drawing, volume and time to shape visual stories. From digital design to 2D and 3D animation, every project begins with a distinct perspective.",
+    "fr": "Nous explorons le dessin, le volume et le temps pour donner forme aux histoires. Du design digital à l’animation 2D et 3D, chaque projet commence par un regard singulier."
+  },
+  "Personajes con identidad, cortometrajes que dejan una sensación y series animadas que abren nuevas posibilidades. Una serie 2D propia está en desarrollo.": {
+    "en": "Distinctive characters, short films that leave an impression and animated series that open new possibilities. An original 2D series is in development.",
+    "fr": "Des personnages singuliers, des courts métrages qui marquent et des séries animées qui ouvrent de nouvelles perspectives. Une série 2D originale est en développement."
+  },
+  "DISEÑO DIGITAL": {
+    "en": "DIGITAL DESIGN",
+    "fr": "DESIGN DIGITAL"
+  },
+  "NARRATIVA VISUAL": {
+    "en": "VISUAL STORYTELLING",
+    "fr": "NARRATION VISUELLE"
+  },
+  "CORTOMETRAJES & SERIES": {
+    "en": "SHORT FILMS & SERIES",
+    "fr": "COURTS MÉTRAGES & SÉRIES"
+  },
+  "EL SIGUIENTE FRAME TODAVÍA NO EXISTE.": {
+    "en": "THE NEXT FRAME DOES NOT EXIST YET.",
+    "fr": "LA PROCHAINE IMAGE RESTE À INVENTER."
+  },
+  "Vamos a<br><em>imaginarlo.</em>": {
+    "en": "Let’s<br><em>imagine it.</em>",
+    "fr": "À nous de<br><em>l’imaginer.</em>"
+  },
+  "Otra forma<br>de ver.": {
+    "en": "Another way<br>to see.",
+    "fr": "Une autre façon<br>de voir."
+  },
+  "Volumen, luz y profundidad. Formas que se transforman y revelan nuevas perspectivas con cada movimiento.": {
+    "en": "Volume, light and depth. Shapes that transform and reveal new perspectives with every movement.",
+    "fr": "Volume, lumière et profondeur. Des formes qui se transforment et révèlent de nouvelles perspectives à chaque mouvement."
+  },
+  "Volumen": {
+    "en": "Volume",
+    "fr": "Volume"
+  },
+  "Iluminación": {
+    "en": "Lighting",
+    "fr": "Éclairage"
+  },
+  "Movimiento": {
+    "en": "Movement",
+    "fr": "Mouvement"
+  },
+  "VOLUMEN & LUZ": {
+    "en": "VOLUME & LIGHT",
+    "fr": "VOLUME & LUMIÈRE"
+  },
+  "Una idea. Todas sus dimensiones.": {
+    "en": "One idea. All its dimensions.",
+    "fr": "Une idée. Toutes ses dimensions."
+  },
+  "VOLUMEN.": {
+    "en": "VOLUME.",
+    "fr": "VOLUME."
+  },
+  "Un instante.<br>Una historia.": {
+    "en": "One moment.<br>One story.",
+    "fr": "Un instant.<br>Une histoire."
+  },
+  "El ritmo de una escena cambia lo que sentimos. Una exploración del encuadre, la atmósfera y el tiempo como herramientas narrativas.": {
+    "en": "The rhythm of a scene changes how we feel. An exploration of framing, atmosphere and time as storytelling tools.",
+    "fr": "Le rythme d’une scène change nos émotions. Une exploration du cadrage, de l’atmosphère et du temps comme outils narratifs."
+  },
+  "Dirección visual": {
+    "en": "Visual direction",
+    "fr": "Direction visuelle"
+  },
+  "Composición": {
+    "en": "Composition",
+    "fr": "Composition"
+  },
+  "Narrativa": {
+    "en": "Storytelling",
+    "fr": "Narration"
+  },
+  "TIEMPO & ENCUADRE": {
+    "en": "TIME & FRAMING",
+    "fr": "TEMPS & CADRAGE"
+  },
+  "El silencio también cuenta historias.": {
+    "en": "Silence tells stories too.",
+    "fr": "Le silence raconte aussi des histoires."
+  },
+  "INSTANTE.": {
+    "en": "MOMENT.",
+    "fr": "INSTANT."
+  },
+  "Historias que<br>continúan.": {
+    "en": "Stories that<br>continue.",
+    "fr": "Des histoires<br>qui continuent."
+  },
+  "Un lenguaje visual que evoluciona sin perder su identidad. Ritmos, motivos y variaciones para construir continuidad entre episodios.": {
+    "en": "A visual language that evolves without losing its identity. Rhythms, motifs and variations that connect episodes.",
+    "fr": "Un langage visuel qui évolue sans perdre son identité. Rythmes, motifs et variations pour relier les épisodes."
+  },
+  "Desarrollo visual": {
+    "en": "Visual development",
+    "fr": "Développement visuel"
+  },
+  "Identidad": {
+    "en": "Identity",
+    "fr": "Identité"
+  },
+  "Continuidad": {
+    "en": "Continuity",
+    "fr": "Continuité"
+  },
+  "SECUENCIA & VARIACIÓN": {
+    "en": "SEQUENCE & VARIATION",
+    "fr": "SÉQUENCE & VARIATION"
+  },
+  "Cada frame abre otra posibilidad.": {
+    "en": "Every frame opens another possibility.",
+    "fr": "Chaque image ouvre une nouvelle possibilité."
+  },
+  "CONTINÚA.": {
+    "en": "CONTINUE.",
+    "fr": "LA SUITE."
+  },
+  "03 / SERVICIOS": {
+    "en": "03 / SERVICES",
+    "fr": "03 / SERVICES"
+  },
+  "Tu visión.<br><span>Nuestro siguiente desafío.</span>": {
+    "en": "Your vision.<br><span>Our next challenge.</span>",
+    "fr": "Votre vision.<br><span>Notre prochain défi.</span>"
+  },
+  "Del concepto a la experiencia.<br>Diseño para mirar, sentir e interactuar.": {
+    "en": "From concept to experience.<br>Design to see, feel and interact with.",
+    "fr": "Du concept à l’expérience.<br>Du design à regarder, ressentir et explorer."
+  },
+  "EON / IDENTIDAD EN CONSTRUCCIÓN": {
+    "en": "EON / IDENTITY IN THE MAKING",
+    "fr": "EON / IDENTITÉ EN CONSTRUCTION"
+  },
+  "Diseño gráfico": {
+    "en": "Graphic design",
+    "fr": "Design graphique"
+  },
+  "Una identidad que se reconoce antes de leer su nombre. Creamos sistemas visuales con carácter, coherencia y espacio para crecer.": {
+    "en": "An identity you recognise before reading its name. We create visual systems with character, consistency and room to grow.",
+    "fr": "Une identité qui se reconnaît avant même de lire son nom. Nous créons des systèmes visuels singuliers, cohérents et prêts à évoluer."
+  },
+  "Identidad de marca": {
+    "en": "Brand identity",
+    "fr": "Identité de marque"
+  },
+  "Dirección de arte": {
+    "en": "Art direction",
+    "fr": "Direction artistique"
+  },
+  "Diseño editorial": {
+    "en": "Editorial design",
+    "fr": "Design éditorial"
+  },
+  "Demos forma a tu marca": {
+    "en": "Let’s shape your brand",
+    "fr": "Donnons forme à votre marque"
+  },
+  "Ideas<br><em>sin límites.</em>": {
+    "en": "Ideas<br><em>without limits.</em>",
+    "fr": "Des idées<br><em>sans limites.</em>"
+  },
+  "Diseño digital": {
+    "en": "Digital design",
+    "fr": "Design digital"
+  },
+  "Experiencias que invitan a explorar. Unimos diseño de interfaces, movimiento y narrativa para conectar tu marca con las personas.": {
+    "en": "Experiences that invite exploration. We combine interface design, motion and storytelling to connect your brand with people.",
+    "fr": "Des expériences qui invitent à explorer. Nous associons interfaces, mouvement et narration pour rapprocher votre marque de son public."
+  },
+  "Diseño web": {
+    "en": "Web design",
+    "fr": "Design web"
+  },
+  "Contenido digital": {
+    "en": "Digital content",
+    "fr": "Contenu digital"
+  },
+  "Imaginemos tu experiencia": {
+    "en": "Let’s imagine your experience",
+    "fr": "Imaginons votre expérience"
+  },
+  "01 — ESCUCHAR": {
+    "en": "01 — LISTEN",
+    "fr": "01 — ÉCOUTER"
+  },
+  "02 — EXPLORAR": {
+    "en": "02 — EXPLORE",
+    "fr": "02 — EXPLORER"
+  },
+  "03 — DISEÑAR": {
+    "en": "03 — DESIGN",
+    "fr": "03 — CONCEVOIR"
+  },
+  "04 — DAR VIDA": {
+    "en": "04 — BRING TO LIFE",
+    "fr": "04 — DONNER VIE"
+  },
+  "04 / CONTACTO": {
+    "en": "04 / CONTACT",
+    "fr": "04 / CONTACT"
+  },
+  "Todo empieza<br>con un <em>hola.</em>": {
+    "en": "It all starts<br>with a <em>hello.</em>",
+    "fr": "Tout commence<br>par un <em>bonjour.</em>"
+  },
+  "¿Una marca por crear, una experiencia por reinventar o una historia por animar? Cuéntanos tu idea.": {
+    "en": "A brand to create, an experience to reinvent or a story to animate? Tell us your idea.",
+    "fr": "Une marque à créer, une expérience à réinventer ou une histoire à animer ? Racontez-nous votre idée."
+  },
+  "Escríbenos con una breve descripción de tu proyecto, tus tiempos y lo que te gustaría conseguir.": {
+    "en": "Write to us with a brief description of your project, your timeline and what you would like to achieve.",
+    "fr": "Écrivez-nous en décrivant votre projet, votre calendrier et ce que vous souhaitez accomplir."
+  },
+  "Explorar mi idea con Olivia": {
+    "en": "Explore my idea with Olivia",
+    "fr": "Explorer mon idée avec Olivia"
+  },
+  "Aviso de privacidad": {
+    "en": "Privacy notice",
+    "fr": "Confidentialité"
+  },
+  "Tu asistente creativo": {
+    "en": "Your creative assistant",
+    "fr": "Votre assistante créative"
+  },
+  "Cerrar el chat": {
+    "en": "Close chat",
+    "fr": "Fermer la conversation"
+  },
+  "¿Qué servicios ofrece EON NOVA STUDIOS?": {
+    "en": "What services does EON NOVA STUDIOS offer?",
+    "fr": "Quels services propose EON NOVA STUDIOS ?"
+  },
+  "¿Qué explora el estudio en animación 2D y 3D?": {
+    "en": "What does the studio explore in 2D and 3D animation?",
+    "fr": "Que propose le studio en animation 2D et 3D ?"
+  },
+  "¿Qué series animadas y cortometrajes están en desarrollo?": {
+    "en": "What animated series and short films are in development?",
+    "fr": "Quels courts métrages et séries animées sont en développement ?"
+  },
+  "Historias & series": {
+    "en": "Stories & series",
+    "fr": "Histoires & séries"
+  },
+  "Tengo una idea para un proyecto creativo. ¿Por dónde empezamos?": {
+    "en": "I have an idea for a creative project. Where do we start?",
+    "fr": "J’ai une idée de projet créatif. Par où commencer ?"
+  },
+  "Tengo una idea ↗": {
+    "en": "I have an idea ↗",
+    "fr": "J’ai une idée ↗"
+  },
+  "Acepto que mis mensajes sean tratados para recibir asistencia de Olivia IA. No incluyas datos sensibles.": {
+    "en": "I consent to my messages being processed to receive assistance from Olivia AI. Do not include sensitive data.",
+    "fr": "J’accepte le traitement de mes messages pour recevoir l’aide d’Olivia IA. N’incluez pas de données sensibles."
+  },
+  "Sobre esta conversación": {
+    "en": "About this conversation",
+    "fr": "À propos de cette conversation"
+  },
+  "Al enviar un mensaje, su contenido se transmite al servicio Olivia IA de o7Digital y a su proveedor de inteligencia artificial para responder a tu consulta sobre EON NOVA STUDIOS. El servicio guarda el intercambio y su contexto. No compartas información confidencial ni datos de terceros. Puedes desmarcar la casilla para dejar de enviar mensajes; esto no elimina los ya enviados.": {
+    "en": "When you send a message, its content is sent to the o7Digital Olivia AI service and its AI provider to answer your enquiry about EON NOVA STUDIOS. The service stores the conversation and its context. Do not share confidential information or other people’s data. Uncheck the box to stop sending messages; this does not delete messages already sent.",
+    "fr": "Lorsque vous envoyez un message, son contenu est transmis au service Olivia IA d’o7Digital et à son fournisseur d’intelligence artificielle pour répondre à votre demande sur EON NOVA STUDIOS. Le service conserve l’échange et son contexte. Ne partagez pas d’informations confidentielles ni de données de tiers. Décochez la case pour arrêter l’envoi de messages ; cela ne supprime pas les messages déjà envoyés."
+  },
+  "Tu mensaje": {
+    "en": "Your message",
+    "fr": "Votre message"
+  },
+  "Dale forma a tu idea…": {
+    "en": "Give shape to your idea…",
+    "fr": "Donnez forme à votre idée…"
+  },
+  "Enviar mensaje": {
+    "en": "Send message",
+    "fr": "Envoyer le message"
+  },
+  "Olivia IA · Las respuestas pueden contener errores.": {
+    "en": "Olivia AI · Answers may contain errors.",
+    "fr": "Olivia IA · Les réponses peuvent contenir des erreurs."
+  },
+  "Abrir Olivia IA": {
+    "en": "Open Olivia AI",
+    "fr": "Ouvrir Olivia IA"
+  },
+  "Hablemos de tu idea": {
+    "en": "Let’s talk about your idea",
+    "fr": "Parlons de votre idée"
+  },
+  "Hola, soy Olivia, tu asistente de EON NOVA STUDIOS. Diseño digital, animación e historias en movimiento. ¿Qué te gustaría explorar?": {
+    "en": "Hi, I’m Olivia, your EON NOVA STUDIOS assistant. Digital design, animation and stories in motion. What would you like to explore?",
+    "fr": "Bonjour, je suis Olivia, votre assistante EON NOVA STUDIOS. Design digital, animation et histoires en mouvement. Que souhaitez-vous explorer ?"
+  },
+  "Olivia está pensando…": {
+    "en": "Olivia is thinking…",
+    "fr": "Olivia réfléchit…"
+  },
+  "Demasiados mensajes. Espera un minuto e inténtalo de nuevo.": {
+    "en": "Too many messages. Wait a minute and try again.",
+    "fr": "Trop de messages. Patientez une minute puis réessayez."
+  },
+  "Olivia no está disponible en este momento. No se pudo recuperar la respuesta. Inténtalo de nuevo en unos instantes.": {
+    "en": "Olivia is currently unavailable. The response could not be retrieved. Please try again shortly.",
+    "fr": "Olivia est indisponible pour le moment. La réponse n’a pas pu être récupérée. Réessayez dans quelques instants."
+  },
+  "DISEÑO / 2D / 3D / FILM": {
+    "en": "DESIGN / 2D / 3D / FILM",
+    "fr": "DESIGN / 2D / 3D / FILM"
+  },
+  "ANIMACIÓN 2D & 3D": {
+    "en": "2D & 3D ANIMATION",
+    "fr": "ANIMATION 2D & 3D"
+  },
+  "Animación 2D / 3D": {
+    "en": "2D / 3D animation",
+    "fr": "Animation 2D / 3D"
+  },
+  "Olivia IA": {
+    "en": "Olivia AI",
+    "fr": "Olivia IA"
+  }
+}

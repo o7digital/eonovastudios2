@@ -1,1 +1,5 @@
-<footer><p class="eyebrow">EL SIGUIENTE FRAME TODAVÍA NO EXISTE.</p><a class="footer-title" href="#inicio">Vamos a<br><em>imaginarlo.</em><span>✳</span></a><div class="footer-bottom"><a class="brand" href="#inicio"><span class="brand-icon">✳</span><span>EON NOVA<small>STUDIOS</small></span></a><span>DISEÑO DIGITAL & ANIMACIÓN</span><span>© 2026 EON NOVA STUDIOS</span></div></footer>
+---
+import {home, privacy} from '../i18n';
+const {lang = 'es'} = Astro.props;
+---
+<footer><p class="eyebrow">EL SIGUIENTE FRAME TODAVÍA NO EXISTE.</p><a class="footer-title" href={home(lang) + '#inicio'}>Vamos a<br><em>imaginarlo.</em><span>✳</span></a><div class="footer-bottom"><a class="brand" href={home(lang) + '#inicio'}><span class="brand-icon">✳</span><span>EON NOVA<small>STUDIOS</small></span></a><span>DISEÑO DIGITAL & ANIMACIÓN</span><span>© 2026 EON NOVA STUDIOS</span></div><div class="legal-links"><a href={privacy(lang)}>Aviso de privacidad</a><a href={home(lang) + '#contacto'}>Contacto ↗</a><a href="https://www.o7digital.com/" target="_blank" rel="noopener noreferrer">o7 Digital ↗</a></div></footer>

@@ -1,0 +1,6 @@
+---
+import {translate} from '../i18n';
+const {lang = 'es'} = Astro.props;
+const html = translate(await Astro.slots.render('default'), lang);
+---
+<Fragment set:html={html} />

@@ -1,0 +1,12 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Localized from './Localized.astro';
+import Header from './Header.astro';
+import HeroMotion from './HeroMotion.astro';
+import MotionLab from './MotionLab.astro';
+import Studio from './Studio.astro';
+import Services from './Services.astro';
+import Footer from './Footer.astro';
+const {lang = 'es'} = Astro.props;
+---
+<Layout lang={lang}><Localized lang={lang}><Header lang={lang}/><main><HeroMotion/><MotionLab/><Studio/><Services/><Footer lang={lang}/></main></Localized></Layout>

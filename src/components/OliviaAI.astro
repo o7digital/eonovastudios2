@@ -1,3 +1,7 @@
+---
+import {privacy} from '../i18n';
+const {lang = 'es'} = Astro.props;
+---
 <eon-olivia>
 <template>
 <style>
@@ -45,7 +49,7 @@
 <button type="button" data-prompt="Tengo una idea para un proyecto creativo. ¿Por dónde empezamos?">Tengo una idea ↗</button>
 </div>
 <div class="consent"><label><input type="checkbox" /><span>Acepto que mis mensajes sean tratados para recibir asistencia de Olivia IA. No incluyas datos sensibles.</span></label></div>
-<details class="privacy"><summary>Sobre esta conversación</summary><p>Al enviar un mensaje, su contenido se transmite al servicio Olivia IA de o7Digital y a su proveedor de inteligencia artificial para responder a tu consulta sobre EON NOVA STUDIOS. El servicio guarda el intercambio y su contexto. No compartas información confidencial ni datos de terceros. Puedes desmarcar la casilla para dejar de enviar mensajes; esto no elimina los ya enviados.</p></details>
+<details class="privacy"><summary>Sobre esta conversación</summary><p>Al enviar un mensaje, su contenido se transmite al servicio Olivia IA de o7Digital y a su proveedor de inteligencia artificial para responder a tu consulta sobre EON NOVA STUDIOS. El servicio guarda el intercambio y su contexto. No compartas información confidencial ni datos de terceros. Puedes desmarcar la casilla para dejar de enviar mensajes; esto no elimina los ya enviados.</p><a href={privacy(lang)}>Aviso de privacidad ↗</a></details>
 <p class="error" role="alert" hidden></p>
 <form><input type="text" aria-label="Tu mensaje" placeholder="Dale forma a tu idea…" maxlength="2000" autocomplete="off" disabled /><button class="send" type="submit" aria-label="Enviar mensaje" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button></form>
 <div class="footnote">Olivia IA · Las respuestas pueden contener errores.</div>
@@ -54,6 +58,8 @@
 </template>
 </eon-olivia>
 <script>
+import {translate, type Language} from '../i18n';
+const t = (text: string) => translate(text, document.documentElement.lang as Language);
 class EonOlivia extends HTMLElement {
  connectedCallback(){
   if(this.shadowRoot)return;
@@ -69,7 +75,7 @@ class EonOlivia extends HTMLElement {
   const sendButton=root.querySelector<HTMLButtonElement>('.send')!;
   let busy=false;let conversation:string|undefined;
   const addMessage=(text:string,user=false)=>{const p=document.createElement('p');p.className=user?'message user':'message';p.textContent=text;messages.append(p);messages.scrollTop=messages.scrollHeight;return p;};
-  addMessage('Hola, soy Olivia, tu asistente de EON NOVA STUDIOS. Diseño digital, animación e historias en movimiento. ¿Qué te gustaría explorar?');
+  addMessage(t("Hola, soy Olivia, tu asistente de EON NOVA STUDIOS. Diseño digital, animación e historias en movimiento. ¿Qué te gustaría explorar?"));
   const update=()=>{input.disabled=!consent.checked||busy;sendButton.disabled=input.disabled;actions.forEach(b=>{b.disabled=input.disabled;});};
   const close=()=>{panel.hidden=true;toggle.setAttribute('aria-expanded','false');toggle.querySelector<HTMLElement>('.toggle-label')!.hidden=false;toggle.focus();};
   toggle.addEventListener('click',()=>{if(!panel.hidden)return close();panel.hidden=false;toggle.setAttribute('aria-expanded','true');toggle.querySelector<HTMLElement>('.toggle-label')!.hidden=true;(consent.checked?input:consent).focus();});
@@ -79,13 +85,13 @@ class EonOlivia extends HTMLElement {
   const send=async(text:string)=>{
    if(!consent.checked||busy||!text.trim())return;
    text=text.trim();busy=true;update();error.hidden=true;addMessage(text,true);input.value='';
-   const pending=addMessage('Olivia está pensando…');messages.setAttribute('aria-busy','true');
+   const pending=addMessage(t("Olivia está pensando…"));messages.setAttribute('aria-busy','true');
    try{
-    const response=await fetch('/api/olivia',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,language:'es',conversation,consent:true}),signal:AbortSignal.timeout(60000)});
+    const response=await fetch('/api/olivia',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,language:document.documentElement.lang,conversation,consent:true}),signal:AbortSignal.timeout(60000)});
     if(!response.ok)throw new Error(String(response.status));
     const data=await response.json();if(typeof data.answer!=='string'||typeof data.conversation!=='string')throw new Error('Invalid response');
     pending.textContent=data.answer;conversation=data.conversation;
-   }catch(err){pending.remove();input.value=text;error.textContent=(err as Error).message==='429'?'Demasiados mensajes. Espera un minuto e inténtalo de nuevo.':'Olivia no está disponible en este momento. No se pudo recuperar la respuesta. Inténtalo de nuevo en unos instantes.';error.hidden=false;
+   }catch(err){pending.remove();input.value=text;error.textContent=(err as Error).message==='429'?t("Demasiados mensajes. Espera un minuto e inténtalo de nuevo."):t("Olivia no está disponible en este momento. No se pudo recuperar la respuesta. Inténtalo de nuevo en unos instantes.");error.hidden=false;
    }finally{busy=false;update();messages.removeAttribute('aria-busy');messages.scrollTop=messages.scrollHeight;if(!panel.hidden&&consent.checked)input.focus();}
   };
   root.querySelector('form')!.addEventListener('submit',event=>{event.preventDefault();void send(input.value);});

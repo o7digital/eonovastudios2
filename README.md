@@ -1,6 +1,6 @@
 # EON NOVA STUDIOS
 
-Site statique Astro, en espagnol, issu de la maquette fournie. Node.js 22.12+ requis.
+Site statique Astro en espagnol (`/`), anglais (`/en/`) et français (`/fr/`), issu de la maquette fournie. Node.js 22.12+ requis.
 
 ```sh
 npm ci
@@ -16,3 +16,5 @@ Le build est dans `dist/`. Les aperçus sont `noindex` par défaut. L'indexation
 Ne pas relier le domaine avant validation de l'aperçu. Hébergement : projet Vercel `eon2`, aperçu indépendant du site historique. Configuration dans `vercel.json`.
 
 Chat visiteurs : Olivia IA 3.5, avec passerelle et tenant dédiés. Voir [la documentation de connexion](docs/olivia.md). Vérification du contrat API : `npm test`.
+
+Les traductions partagées sont centralisées dans `src/i18n/translations.json` et rendues au build. Les pages de confidentialité sont `/aviso-de-privacidad/`, `/en/privacy-policy/` et `/fr/confidentialite/`. Elles reprennent les informations publiées sur https://www.o7digital.com/privacy-policy et précisent le traitement des conversations Olivia. Le contact utilise l’adresse o7 publiée sur cette page.

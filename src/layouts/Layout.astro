@@ -1,14 +1,18 @@
 ---
 import '../styles/global.css';
+import Localized from '../components/Localized.astro';
+import {home, privacy, languages} from '../i18n';
 import OliviaAI from '../components/OliviaAI.astro';
 import '@fontsource-variable/dm-sans';
 import '@fontsource-variable/space-grotesk';
+const {lang = 'es', legal = false, pageTitle} = Astro.props;
+const url = 'https://eonovastudios.com' + (legal ? privacy(lang) : home(lang));
 const production = process.env.SITE_INDEXABLE === 'true';
-const title = 'EON NOVA STUDIOS · Diseño digital y animación';
-const description = 'Estudio de diseño digital y animación 2D y 3D. Narrativa visual, cortometrajes y series animadas con identidad propia.';
+const title = pageTitle ? `${pageTitle} · EON NOVA STUDIOS` : ({es:'EON NOVA STUDIOS · Diseño digital y animación', en:'EON NOVA STUDIOS · Digital design & animation', fr:'EON NOVA STUDIOS · Design digital & animation'}[lang as 'es'|'en'|'fr']);
+const description = {es:'Estudio de diseño gráfico, digital y animación 2D y 3D. Identidad de marca, diseño web y narrativa visual.', en:'Graphic design, digital design and 2D and 3D animation studio. Brand identity, web design and visual storytelling.', fr:'Studio de design graphique, digital et d’animation 2D et 3D. Identité de marque, design web et narration visuelle.'}[lang as 'es'|'en'|'fr'];
 ---
 <!doctype html>
-<html lang="es">
+<html lang={lang}>
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -17,13 +21,15 @@ const description = 'Estudio de diseño digital y animación 2D y 3D. Narrativa 
 {!production && <meta name="robots" content="noindex, nofollow" />}
 <title>{title}</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-<link rel="canonical" href="https://eonovastudios.com/" />
+<link rel="canonical" href={url} />
+{languages.map(l => <link rel="alternate" hreflang={l} href={'https://eonovastudios.com' + (legal ? privacy(l) : home(l))} />)}
+<link rel="alternate" hreflang="x-default" href={'https://eonovastudios.com' + (legal ? privacy('es') : '/')} />
 <meta property="og:type" content="website" />
-<meta property="og:locale" content="es_ES" />
+<meta property="og:locale" content={{es:"es_MX",en:"en_US",fr:"fr_FR"}[lang as 'es'|'en'|'fr']} />
 <meta property="og:title" content={title} />
 <meta property="og:description" content={description} />
-<meta property="og:url" content="https://eonovastudios.com/" />
+<meta property="og:url" content={url} />
 <meta property="og:image" content="https://eonovastudios.com/og-image.png" />
 </head>
-<body><slot /><OliviaAI /><script>import '../scripts/studio.js';</script></body>
+<body><slot /><Localized lang={lang}><OliviaAI lang={lang} /></Localized><script>if (document.querySelector('#lab-canvas')) import('../scripts/studio.js');</script></body>
 </html>
