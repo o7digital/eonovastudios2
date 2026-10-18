@@ -1,0 +1,29 @@
+name: eon2-olivia
+services:
+  gateway:
+    image: node:24-alpine
+    container_name: eon2-olivia-gateway
+    restart: unless-stopped
+    working_dir: /app
+    command: [node, gateway.mjs]
+    env_file: .env
+    volumes: [./gateway.mjs:/app/gateway.mjs:ro, ./knowledge.txt:/app/knowledge.txt:ro]
+    networks: [o7-apps, v3]
+    read_only: true
+    user: node
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 128m
+    cpus: 0.5
+    healthcheck:
+      test: [CMD, node, -e, 'fetch("http://localhost:3099/health").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+networks:
+  o7-apps:
+    external: true
+    name: o7-apps
+  v3:
+    external: true
+    name: olivia-v3_olivia-v3-internal

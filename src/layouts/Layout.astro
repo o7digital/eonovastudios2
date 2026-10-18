@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import OliviaAI from '../components/OliviaAI.astro';
 import '@fontsource-variable/dm-sans';
 import '@fontsource-variable/space-grotesk';
 const production = process.env.SITE_INDEXABLE === 'true';
@@ -24,5 +25,5 @@ const description = 'Estudio de diseño digital y animación 2D y 3D. Narrativa 
 <meta property="og:url" content="https://eonovastudios.com/" />
 <meta property="og:image" content="https://eonovastudios.com/og-image.png" />
 </head>
-<body><slot /><script>import '../scripts/studio.js';</script></body>
+<body><slot /><OliviaAI /><script>import '../scripts/studio.js';</script></body>
 </html>

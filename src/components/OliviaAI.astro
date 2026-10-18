@@ -1,0 +1,96 @@
+<eon-olivia>
+<template>
+<style>
+      :host { position: fixed; right: 24px; bottom: 24px; z-index: 1000; font: 14px/1.5 'DM Sans Variable', Arial, sans-serif; color: #2b2b2b; }
+      * { box-sizing: border-box; } [hidden] { display: none !important; }
+      button, input { font: inherit; } button, a { -webkit-tap-highlight-color: transparent; }
+      button { cursor: pointer; } button:disabled { cursor: default; opacity: .5; }
+      button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid #9aee68; outline-offset: 3px; }
+      .toggle { display: grid; place-items: center; width: 64px; height: 64px; margin-left: auto; border-radius: 50%; background: linear-gradient(135deg, #3d3932, #171512); color: white; border: 1px solid #9aee6870; box-shadow: 0 18px 40px -16px #0009, inset 0 1px 0 #ffffff30; }
+      svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+      .panel { position: absolute; bottom: 84px; right: 0; display: flex; flex-direction: column; width: 430px; max-width: calc(100vw - 32px); height: min(700px, calc(100dvh - 130px)); border: 1px solid #ded7c9; border-radius: 28px; background: #fffdf8; overflow: hidden; box-shadow: 0 46px 78px -28px #14100ac7, 0 22px 38px -26px #14100aa3, inset 0 1px 0 #ffffffcc; animation: enter .22s ease-out; }
+      header { display: flex; align-items: flex-start; gap: 12px; padding: 20px; color: white; background: #2b2b2b; border-bottom: 1px solid #9aee68; }
+      .avatar { display: grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: 50%; background: #ffffff15; border: 1px solid #ffffff26; color: #b8f49b; }
+      h2 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -.02em; }
+      .brand { margin: 2px 0 7px; font-size: 11px; color: #ffffffb3; }
+      .status { display: inline-flex; align-items: center; gap: 7px; border-radius: 20px; background: #ffffff15; padding: 3px 9px; font-size: 11px; }
+      .dot { width: 7px; height: 7px; border-radius: 50%; background: #34d399; box-shadow: 0 0 0 4px #34d39924, 0 0 14px #34d39980; }
+      .close { margin-left: auto; border: 0; border-radius: 50%; width: 30px; height: 30px; color: white; background: #ffffff15; font-size: 22px; line-height: 1; }
+      .messages { flex: 1; min-height: 100px; overflow-y: auto; padding: 20px 16px; background: #f7f2e9; display: flex; flex-direction: column; gap: 12px; overscroll-behavior: contain; }
+      .message { flex: none; max-width: 90%; padding: 12px 15px; margin: 0; border-radius: 18px 18px 18px 4px; background: white; box-shadow: 0 2px 8px #14100a0a; white-space: pre-wrap; overflow-wrap: anywhere; }
+      .user { align-self: flex-end; background: #2b2b2b; color: white; border-radius: 18px 18px 4px 18px; }
+      .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px 16px; background: #f7f2e9; }
+      .actions button { background: transparent; border: 1px solid #9aee68; color: #5f5546; border-radius: 10px; font-size: 11px; font-weight: 600; padding: 8px 6px; }
+      .consent { padding: 10px 16px; font-size: 11px; border-top: 1px solid #e8e0d3; background: #fffdf8; }
+      .consent label { display: flex; align-items: flex-start; gap: 8px; } .consent input { accent-color: #2b2b2b; margin-top: 4px; }
+      a { color: #365b26; text-underline-offset: 3px; } .contact { display: flex; justify-content: space-between; padding: 0 16px 10px; font-size: 11px; }
+      form { padding: 12px 16px; display: flex; gap: 8px; border-top: 1px solid #ded7c9; background: #fffdf8; }
+      form input { min-width: 0; width: 100%; border-radius: 12px; border: 1px solid #ded7c9; background: white; padding: 12px; color: #2b2b2b; }
+      .send { display: grid; place-items: center; border: none; border-radius: 12px; background: #2b2b2b; color: white; width: 46px; flex: none; }
+      .error { margin: 0; padding: 7px 16px; background: #fff0e9; color: #85402c; font-size: 12px; }
+      .footnote { padding: 0 16px 9px; font-size: 10px; color: #8b8275; text-align: center; }
+      @keyframes enter { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
+      @media (max-width: 600px) { :host { right: 16px; bottom: 16px; } .panel { position: fixed; right: 12px; left: 12px; bottom: 92px; width: auto; max-width: none; height: min(660px, calc(100dvh - 110px)); border-radius: 24px; } header { padding: 16px; } .messages { padding: 16px; } }
+      @media (prefers-reduced-motion: reduce) { .panel { animation: none; } }
+    
+.toggle-label{position:absolute;right:76px;white-space:nowrap;background:#fffdf8;color:#2b2b2b;border:1px solid #ded7c9;border-radius:20px;padding:7px 12px;font-size:12px;box-shadow:0 6px 20px #0002}.privacy{margin:0 16px 10px;font-size:11px;color:#5f5546}.privacy summary{cursor:pointer;text-decoration:underline;text-underline-offset:3px}.privacy p{margin:8px 0;max-height:95px;overflow:auto}.version{color:#b8f49b;font-size:10px;margin-left:5px}textarea:focus-visible,summary:focus-visible{outline:2px solid #9aee68;outline-offset:3px}
+</style>
+<section class="panel" id="olivia-panel" role="dialog" aria-labelledby="olivia-title" hidden>
+<header><span class="avatar" aria-hidden="true">✧</span><div><h2 id="olivia-title">Olivia IA <span class="version">3.5</span></h2><p class="brand">EON NOVA STUDIOS</p><span class="status"><span class="dot" aria-hidden="true"></span>Tu asistente creativo</span></div><button class="close" aria-label="Cerrar el chat" type="button">×</button></header>
+<div class="messages" role="log" aria-live="polite" aria-relevant="additions text"></div>
+<div class="actions">
+<button type="button" data-prompt="¿Qué servicios ofrece EON NOVA STUDIOS?">Diseño digital</button>
+<button type="button" data-prompt="¿Qué explora el estudio en animación 2D y 3D?">Animación 2D / 3D</button>
+<button type="button" data-prompt="¿Qué series animadas y cortometrajes están en desarrollo?">Historias & series</button>
+<button type="button" data-prompt="Tengo una idea para un proyecto creativo. ¿Por dónde empezamos?">Tengo una idea ↗</button>
+</div>
+<div class="consent"><label><input type="checkbox" /><span>Acepto que mis mensajes sean tratados para recibir asistencia de Olivia IA. No incluyas datos sensibles.</span></label></div>
+<details class="privacy"><summary>Sobre esta conversación</summary><p>Al enviar un mensaje, su contenido se transmite al servicio Olivia IA de o7Digital y a su proveedor de inteligencia artificial para responder a tu consulta sobre EON NOVA STUDIOS. El servicio guarda el intercambio y su contexto. No compartas información confidencial ni datos de terceros. Puedes desmarcar la casilla para dejar de enviar mensajes; esto no elimina los ya enviados.</p></details>
+<p class="error" role="alert" hidden></p>
+<form><input type="text" aria-label="Tu mensaje" placeholder="Dale forma a tu idea…" maxlength="2000" autocomplete="off" disabled /><button class="send" type="submit" aria-label="Enviar mensaje" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button></form>
+<div class="footnote">Olivia IA · Las respuestas pueden contener errores.</div>
+</section>
+<button class="toggle" type="button" aria-label="Abrir Olivia IA" aria-controls="olivia-panel" aria-expanded="false"><span class="toggle-label">Hablemos de tu idea</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z"/></svg></button>
+</template>
+</eon-olivia>
+<script>
+class EonOlivia extends HTMLElement {
+ connectedCallback(){
+  if(this.shadowRoot)return;
+  const template=this.querySelector('template');if(!template)return;
+  const root=this.attachShadow({mode:'open'});root.append(template.content.cloneNode(true));
+  const panel=root.querySelector<HTMLElement>('.panel')!;
+  const toggle=root.querySelector<HTMLButtonElement>('.toggle')!;
+  const input=root.querySelector<HTMLInputElement>('form input')!;
+  const consent=root.querySelector<HTMLInputElement>('.consent input')!;
+  const messages=root.querySelector<HTMLElement>('.messages')!;
+  const error=root.querySelector<HTMLElement>('.error')!;
+  const actions=[...root.querySelectorAll<HTMLButtonElement>('[data-prompt]')];
+  const sendButton=root.querySelector<HTMLButtonElement>('.send')!;
+  let busy=false;let conversation:string|undefined;
+  const addMessage=(text:string,user=false)=>{const p=document.createElement('p');p.className=user?'message user':'message';p.textContent=text;messages.append(p);messages.scrollTop=messages.scrollHeight;return p;};
+  addMessage('Hola, soy Olivia, tu asistente de EON NOVA STUDIOS. Diseño digital, animación e historias en movimiento. ¿Qué te gustaría explorar?');
+  const update=()=>{input.disabled=!consent.checked||busy;sendButton.disabled=input.disabled;actions.forEach(b=>{b.disabled=input.disabled;});};
+  const close=()=>{panel.hidden=true;toggle.setAttribute('aria-expanded','false');toggle.querySelector<HTMLElement>('.toggle-label')!.hidden=false;toggle.focus();};
+  toggle.addEventListener('click',()=>{if(!panel.hidden)return close();panel.hidden=false;toggle.setAttribute('aria-expanded','true');toggle.querySelector<HTMLElement>('.toggle-label')!.hidden=true;(consent.checked?input:consent).focus();});
+  root.querySelector('.close')!.addEventListener('click',close);
+  root.addEventListener('keydown',event=>{if((event as KeyboardEvent).key==='Escape'&&!panel.hidden){event.stopPropagation();close();}});
+  consent.addEventListener('change',update);update();
+  const send=async(text:string)=>{
+   if(!consent.checked||busy||!text.trim())return;
+   text=text.trim();busy=true;update();error.hidden=true;addMessage(text,true);input.value='';
+   const pending=addMessage('Olivia está pensando…');messages.setAttribute('aria-busy','true');
+   try{
+    const response=await fetch('/api/olivia',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,language:'es',conversation,consent:true}),signal:AbortSignal.timeout(60000)});
+    if(!response.ok)throw new Error(String(response.status));
+    const data=await response.json();if(typeof data.answer!=='string'||typeof data.conversation!=='string')throw new Error('Invalid response');
+    pending.textContent=data.answer;conversation=data.conversation;
+   }catch(err){pending.remove();input.value=text;error.textContent=(err as Error).message==='429'?'Demasiados mensajes. Espera un minuto e inténtalo de nuevo.':'Olivia no está disponible en este momento. No se pudo recuperar la respuesta. Inténtalo de nuevo en unos instantes.';error.hidden=false;
+   }finally{busy=false;update();messages.removeAttribute('aria-busy');messages.scrollTop=messages.scrollHeight;if(!panel.hidden&&consent.checked)input.focus();}
+  };
+  root.querySelector('form')!.addEventListener('submit',event=>{event.preventDefault();void send(input.value);});
+  actions.forEach(b=>b.addEventListener('click',()=>{void send(b.dataset.prompt!);}));
+ }
+}
+if(!customElements.get('eon-olivia'))customElements.define('eon-olivia',EonOlivia);
+</script>
