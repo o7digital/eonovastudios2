@@ -6,5 +6,7 @@
       "destination": "/imageron.webflow.io/index.html",
       "permanent": false
     }
-  ]
+  ],
+  "framework": null,
+  "outputDirectory": "."
 }
