@@ -1,0 +1,28 @@
+---
+import '../styles/global.css';
+import '@fontsource-variable/dm-sans';
+import '@fontsource-variable/space-grotesk';
+const production = process.env.SITE_INDEXABLE === 'true';
+const title = 'EON NOVA STUDIOS · Diseño digital y animación';
+const description = 'Estudio de diseño digital y animación 2D y 3D. Narrativa visual, cortometrajes y series animadas con identidad propia.';
+---
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#101010" />
+<meta name="description" content={description} />
+{!production && <meta name="robots" content="noindex, nofollow" />}
+<title>{title}</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="canonical" href="https://eonovastudios.com/" />
+<meta property="og:type" content="website" />
+<meta property="og:locale" content="es_ES" />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content="https://eonovastudios.com/" />
+<meta property="og:image" content="https://eonovastudios.com/og-image.png" />
+</head>
+<body><slot /><script>import '../scripts/studio.js';</script></body>
+</html>

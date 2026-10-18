@@ -1,0 +1,17 @@
+{
+  "name": "eon-nova-studios",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "^3.7.0",
+    "@fontsource-variable/dm-sans": "^5.2.0",
+    "@fontsource-variable/space-grotesk": "^5.2.0",
+    "astro": "^7.4.0"
+  }
+}
