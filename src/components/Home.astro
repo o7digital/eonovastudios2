@@ -7,6 +7,9 @@ import MotionLab from './MotionLab.astro';
 import Studio from './Studio.astro';
 import Services from './Services.astro';
 import Footer from './Footer.astro';
+import {getCms, cleanCopy} from '../lib/cms.mjs';
 const {lang = 'es'} = Astro.props;
+const cms = await getCms();
+const studyCopy = Object.fromEntries(cms.rows.map(row => [row.source, cleanCopy(row[lang])]));
 ---
-<Layout lang={lang}><Localized lang={lang}><Header lang={lang}/><main><HeroMotion/><MotionLab/><Studio/><Services/><Footer lang={lang}/></main></Localized></Layout>
+<Layout lang={lang}><Localized lang={lang}><Header lang={lang}/><main><HeroMotion media={cms.media.hero} lang={lang}/><MotionLab/><Studio media={cms.media.studio} lang={lang}/><Services media={cms.media} lang={lang}/><Footer lang={lang}/></main></Localized><script id="cms-study-copy" type="application/json" set:html={JSON.stringify(studyCopy).replace(/</g, '\\u003c')} /></Layout>

@@ -1,0 +1,13 @@
+{
+  "project": "eon-nova-cms",
+  "projectId": "37c52842-2f24-44ff-a96a-5e5cf8696811",
+  "environment": "production",
+  "environmentId": "c9cffb1e-3b1f-4a4d-a51f-1310f4858cb1",
+  "directusServiceId": "31e7dc78-130a-4c11-9fbf-1df7fdc017e4",
+  "databaseServiceId": "b64d440f-b1a4-484a-a042-9ab2e96e11cc",
+  "directusImage": "directus/directus:12.6.1",
+  "url": "https://directus-production-7591.up.railway.app",
+  "uploadsMountPath": "/directus/uploads",
+  "website": "https://www.eonovastudios.com",
+  "websiteBranch": "dev"
+}

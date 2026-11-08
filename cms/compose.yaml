@@ -1,0 +1,60 @@
+# Restore the Railway database AND uploads before switching the CMS URL.
+name: eon-nova-cms
+services:
+  database:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: eon_nova
+      POSTGRES_USER: eon_nova
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - database:/var/lib/postgresql
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U eon_nova -d eon_nova']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  directus:
+    image: directus/directus:12.6.1
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:8055:8055'
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      HOST: 0.0.0.0
+      PORT: '8055'
+      PUBLIC_URL: ${PUBLIC_URL:?Set the HTTPS CMS URL}
+      SECRET: ${SECRET:?Preserve the Railway Directus SECRET}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?Set ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD}
+      DB_CLIENT: pg
+      DB_HOST: database
+      DB_PORT: '5432'
+      DB_DATABASE: eon_nova
+      DB_USER: eon_nova
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_POOL__MIN: '0'
+      DB_POOL__MAX: '5'
+      STORAGE_LOCATIONS: local
+      STORAGE_LOCAL_DRIVER: local
+      STORAGE_LOCAL_ROOT: /directus/uploads
+      FILES_MAX_UPLOAD_SIZE: 25mb
+      FILES_MAX_UPLOAD_CONCURRENCY: '2'
+      ASSETS_TRANSFORM_MAX_CONCURRENT: '1'
+      WEBSOCKETS_ENABLED: 'true'
+      TELEMETRY: 'false'
+      CORS_ENABLED: 'false'
+      RATE_LIMITER_ENABLED: 'true'
+    volumes:
+      - uploads:/directus/uploads
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:8055/server/ping').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+volumes:
+  database:
+  uploads:

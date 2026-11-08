@@ -1,0 +1,10 @@
+{
+  "$schema": "https://railway.com/railway.schema.json",
+  "deploy": {
+    "startCommand": "sh -c 'chown -R node:node /directus/uploads && su node -s /bin/sh -c \"node cli.js bootstrap && node cli.js start\"'",
+    "healthcheckPath": "/server/ping",
+    "healthcheckTimeout": 300,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 5
+  }
+}

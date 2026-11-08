@@ -6,3 +6,6 @@ dist/
 .env
 .env.*
 .vercel
+public/_cms/
+.cms/
+!**/.env.example

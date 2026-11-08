@@ -1,5 +1,6 @@
 import {translate} from '../i18n';
-const t = text => translate(text, document.documentElement.lang);
+const copy = JSON.parse(document.getElementById('cms-study-copy')?.textContent || '{}');
+const t = text => copy[text] ?? translate(text, document.documentElement.lang);
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const studies=[
