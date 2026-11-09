@@ -1,18 +1,18 @@
 # EON NOVA · Content Studio
 
-Admin : https://directus-production-7591.up.railway.app/admin/
+Studio éditorial : https://studio-production-3757.up.railway.app
 
-Le site expose aussi `/admin/`. Directus **12.6.1**, PostgreSQL **18**, projet Railway `eon-nova-cms`, environnement `production`. Les identifiants non sensibles sont dans `deployment.json`. Le site reste hébergé par Vercel, projet `eon2`, sources sur la branche `dev`. Aucun VPS existant n'a été modifié.
+Le site expose aussi `/admin/`, qui ouvre l'interface EON NOVA sur mesure. Le [guide du Studio](studio/README.md) décrit son utilisation quotidienne. Directus **12.6.1** et PostgreSQL **18** conservent les données dans le projet Railway `eon-nova-cms`, environnement `production`. L'administration technique Directus reste sur https://directus-production-7591.up.railway.app/admin/. Les identifiants non sensibles sont dans `deployment.json`. Le site reste hébergé par Vercel, projet `eon2`, sources sur la branche `dev`. Aucun VPS existant n'a été modifié.
 
 ## Se connecter
 
 Le compte propriétaire est `olivier.steineur@icloud.com`. Son mot de passe initial aléatoire est dans **Railway → eon-nova-cms → production → directus → Variables → ADMIN_PASSWORD**. Aucun mot de passe n'est suivi dans Git. Après un changement de mot de passe dans Directus, la variable d'installation ne reflète plus le mot de passe courant. Le service mail de réinitialisation n'est pas configuré.
 
-L'admin reprend les couleurs du site, avec une page de connexion personnalisée et le tableau **EON NOVA · Votre studio**. Le plan Core gratuit suffit aux collections et aux comptes utilisés. Aucun plan Directus payant n'a été souscrit ; l'hébergement, les volumes et les sauvegardes Railway sont facturés sur le compte existant.
+Le Studio reprend les couleurs du site avec une connexion dédiée, une navigation par rubrique, des formulaires et une médiathèque. Le plan Core Directus suffit aux collections et aux comptes utilisés. Aucun plan Directus payant n'a été souscrit ; l'hébergement des trois services, les volumes et les sauvegardes Railway sont facturés sur le compte existant.
 
 Directus peut demander de déclarer le propriétaire du projet et d'accepter ses conditions à la première connexion. Cette formalité reste à effectuer par le propriétaire ; aucune acceptation n'a été faite en son nom.
 
-## Modifier les contenus
+## Contenus stockés dans Directus
 
 - **Textes & traductions** : 138 textes d'origine, classés par rubrique. Modifier Español, English et Français. Les clés techniques sont masquées et les libellés conservés pour retrouver les textes. Le Motion Lab utilise les mêmes contenus, y compris lors du changement de discipline.
 - **Images du site** : un visuel facultatif pour l'accueil, le studio, le service graphique et le service digital. Choisir l'emplacement, importer une image et fournir les trois descriptions accessibles. Formats : JPG, PNG, WebP, AVIF, GIF, 25 Mo maximum. Archiver l'image rétablit l'illustration animée d'origine.
@@ -20,7 +20,7 @@ Directus peut demander de déclarer le propriétaire du projet et d'accepter ses
 
 Les champs texte conservent leur mise en forme inline : `<br>`, `<em>`, `<strong>`, `<span>`. Les scripts, attributs et autres balises sont supprimés au rendu. Les liens de navigation, adresses de contact, métadonnées SEO et animations restent dans le code.
 
-Le bouton **Publier** d'une fiche Directus enregistre son contenu. Le Flow **Publier le site**, dans la barre latérale **Flux**, déclenche la génération du site avec les fiches marquées Publié. La version précédente reste accessible jusqu'au build réussi. Une erreur de traduction, d'image ou de lecture du CMS fait échouer le nouveau build.
+Dans le Studio, **Enregistrer la rubrique** conserve les contenus ; la publication automatique reste désactivée jusqu'à sa connexion ultérieure. Dans Directus technique, le bouton **Publier** d'une fiche enregistre également son contenu. Le Flow **Publier le site** est préparé, mais ne peut pas aboutir sans le jeton Vercel permanent. Une fois connecté, il génère le site avec les fiches marquées Publié. La version précédente reste accessible jusqu'au build réussi. Une erreur de traduction, d'image ou de lecture du CMS fait échouer le nouveau build.
 
 ## Connexion de la publication automatique
 

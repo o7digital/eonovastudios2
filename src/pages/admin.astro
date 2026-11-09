@@ -1,5 +1,6 @@
 ---
-const cms = process.env.DIRECTUS_URL;
-if (cms) return Astro.redirect(new URL('/admin/', cms).href, 302);
+import deployment from '../../cms/deployment.json';
+const studio = process.env.STUDIO_URL || deployment.studioUrl;
+if (studio) return Astro.redirect(studio, 302);
 ---
-<!doctype html><html lang="fr"><head><meta charset="utf-8"/><meta name="robots" content="noindex,nofollow"/><title>Administration · EON NOVA</title></head><body><p>Configurez DIRECTUS_URL pour accéder à l’administration EON NOVA.</p></body></html>
+<!doctype html><html lang="fr"><head><meta charset="utf-8"/><meta name="robots" content="noindex,nofollow"/><title>Studio · EON NOVA</title></head><body><p>Configurez STUDIO_URL pour accéder au Studio EON NOVA.</p></body></html>

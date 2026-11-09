@@ -9,5 +9,7 @@
   "url": "https://directus-production-7591.up.railway.app",
   "uploadsMountPath": "/directus/uploads",
   "website": "https://www.eonovastudios.com",
-  "websiteBranch": "dev"
+  "websiteBranch": "dev",
+  "studioServiceId": "32fdb14d-75a7-47a6-958e-5dd0727d552f",
+  "studioUrl": "https://studio-production-3757.up.railway.app"
 }

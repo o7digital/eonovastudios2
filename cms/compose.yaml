@@ -55,6 +55,26 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+  studio:
+    build: ./studio
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:4381:4381'
+    depends_on:
+      directus:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: '4381'
+      DIRECTUS_URL: http://directus:8055
+      STUDIO_ORIGIN: ${STUDIO_ORIGIN:?Set the HTTPS Studio URL}
+      STUDIO_SESSION_SECRET: ${STUDIO_SESSION_SECRET:?Preserve the Studio session secret}
+      STUDIO_PUBLISH_ENABLED: 'false'
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:4381/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 volumes:
   database:
   uploads:
