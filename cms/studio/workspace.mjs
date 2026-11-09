@@ -1,25 +1,25 @@
 import {randomUUID} from 'node:crypto';
 export class WorkspaceError extends Error{constructor(status,message){super(message);this.status=status;}}
 const fail=(status,message)=>{throw new WorkspaceError(status,message);};
-const ensureKeys=(value,keys)=>{if(!value||Array.isArray(value)||typeof value!=='object'||Object.keys(value).some(key=>!keys.includes(key)))fail(400,'Ce formulaire contient des champs non autorisés.');};
+const ensureKeys=(value,keys)=>{if(!value||Array.isArray(value)||typeof value!=='object'||Object.keys(value).some(key=>!keys.includes(key)))fail(400,'El formulario contiene campos no permitidos.');};
 const eventFields='id,title,starts_at,ends_at,timezone,kind,status,location,notes';
 export function eventInput(input,creating=false){
  ensureKeys(input,['title','starts_at','ends_at','timezone','kind','status','location','notes']);
- if(Object.values(input).some(v=>typeof v!=='string'||v.length>10000))fail(400,'Vérifiez les champs du rendez-vous.');
- if(creating&&(!input.title?.trim()||!input.starts_at||!input.ends_at||!input.timezone))fail(400,'Complétez le titre et les horaires.');
- if(input.title!==undefined&&(!input.title.trim()||input.title.length>180))fail(400,'Donnez un titre de 180 caractères maximum.');
- for(const field of ['starts_at','ends_at'])if(input[field]!==undefined&&(!/^\d{4}-\d\d-\d\dT/.test(input[field])||!Number.isFinite(Date.parse(input[field]))))fail(400,'Choisissez des horaires valides.');
- if(input.starts_at&&input.ends_at&&Date.parse(input.ends_at)<=Date.parse(input.starts_at))fail(400,'La fin doit suivre le début du rendez-vous.');
- if(input.timezone){try{new Intl.DateTimeFormat('fr',{timeZone:input.timezone}).format();}catch{fail(400,'Ce fuseau horaire est invalide.');}}
- if(input.status&&!['planned','confirmed','completed','cancelled'].includes(input.status))fail(400,'Ce statut est invalide.');
- if(input.kind&&!['meeting','production','deadline','event','personal'].includes(input.kind))fail(400,'Ce type de rendez-vous est invalide.');
- if(input.location?.length>500)fail(400,'Le lieu dépasse 500 caractères.');
+ if(Object.values(input).some(v=>typeof v!=='string'||v.length>10000))fail(400,'Revisa los campos de la cita.');
+ if(creating&&(!input.title?.trim()||!input.starts_at||!input.ends_at||!input.timezone))fail(400,'Completa el título y los horarios.');
+ if(input.title!==undefined&&(!input.title.trim()||input.title.length>180))fail(400,'Escribe un título de máximo 180 caracteres.');
+ for(const field of ['starts_at','ends_at'])if(input[field]!==undefined&&(!/^\d{4}-\d\d-\d\dT/.test(input[field])||!Number.isFinite(Date.parse(input[field]))))fail(400,'Elige horarios válidos.');
+ if(input.starts_at&&input.ends_at&&Date.parse(input.ends_at)<=Date.parse(input.starts_at))fail(400,'La hora de fin debe ser posterior al inicio de la cita.');
+ if(input.timezone){try{new Intl.DateTimeFormat('es-MX',{timeZone:input.timezone}).format();}catch{fail(400,'La zona horaria no es válida.');}}
+ if(input.status&&!['planned','confirmed','completed','cancelled'].includes(input.status))fail(400,'El estado no es válido.');
+ if(input.kind&&!['meeting','production','deadline','event','personal'].includes(input.kind))fail(400,'El tipo de cita no es válido.');
+ if(input.location?.length>500)fail(400,'El lugar supera los 500 caracteres.');
  return input;
 }
 export function agendaIcs(rows){
  const escape=value=>String(value||'').replace(/\\/g,'\\\\').replace(/\r?\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');
  const date=value=>new Date(value).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}Z$/,'Z');
- const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//EON NOVA//Studio//FR','CALSCALE:GREGORIAN'];
+ const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//EON NOVA//Studio//ES','CALSCALE:GREGORIAN'];
  for(const row of rows){lines.push('BEGIN:VEVENT',`UID:${row.id}@eonovastudios.com`,`DTSTAMP:${date(Date.now())}`,`DTSTART:${date(row.starts_at)}`,`DTEND:${date(row.ends_at)}`,`SUMMARY:${escape(row.title)}`,`LOCATION:${escape(row.location)}`,`DESCRIPTION:${escape(row.notes)}`,`STATUS:${row.status==='cancelled'?'CANCELLED':'CONFIRMED'}`,'END:VEVENT');}
  lines.push('END:VCALENDAR');
  return lines.map(line=>{let out='',current='';for(const char of line){if(Buffer.byteLength(current+char)>74){out+=current+'\r\n ';current='';}current+=char;}return out+current;}).join('\r\n')+'\r\n';
@@ -30,21 +30,21 @@ export function createWorkspace({cms,crm,tenant,serviceEmail,servicePassword,own
  async function request(path,token,method='GET',data){
   const r=await fetcher(crm.replace(/\/$/,'')+path,{method,headers:{...(token?{Authorization:'Bearer '+token}:{}),...(data!==undefined?{'Content-Type':'application/json'}:{})},body:data===undefined?undefined:JSON.stringify(data),signal:AbortSignal.timeout(60000),redirect:'error'});
   const value=r.status===204?null:await r.json().catch(()=>null);
-  if(!r.ok){const message=Array.isArray(value?.message)?value.message.join(' · '):value?.message;fail([400,401,403,404,409,422,429,503].includes(r.status)?r.status:502,typeof message==='string'&&message.length<1800?message:'O7 ne peut pas terminer cette action. Vos contenus enregistrés sont conservés.');}
+  if(!r.ok){const message=Array.isArray(value?.message)?value.message.join(' · '):value?.message;fail([400,401,403,404,409,422,429,503].includes(r.status)?r.status:502,typeof message==='string'&&message.length<1800?message:'O7 no puede completar esta acción. Tu contenido guardado se conserva.');}
   return value;
  }
  async function identity(s){
   const profile=await cms('/users/me?fields=id,email',s.access);
-  if(!ownerEmail||profile.email?.toLowerCase()!==ownerEmail.toLowerCase())fail(403,'Les communications et les contacts sont réservés au propriétaire du Studio.');
-  if(!ready())fail(503,'La connexion de votre espace O7 est en cours de configuration.');
+  if(!ownerEmail||profile.email?.toLowerCase()!==ownerEmail.toLowerCase())fail(403,'Las comunicaciones y los contactos están reservados al propietario del Studio.');
+  if(!ready())fail(503,'La conexión de tu espacio O7 se está configurando.');
   if(!cached||cached.until<Date.now()){
    const result=await request('/auth/login',null,'POST',{email:serviceEmail,password:servicePassword});
    const me=await request('/auth/me',result.token);
-   if(me?.user?.tenantId!==tenant)fail(403,'La connexion ne correspond pas à l’espace EON NOVA.');
+   if(me?.user?.tenantId!==tenant)fail(403,'La conexión no corresponde al espacio EON NOVA.');
    cached={token:result.token,until:Date.now()+240000};
   }
   const me=await request('/auth/me',cached.token);
-  if(me?.user?.tenantId!==tenant){cached=null;fail(403,'La connexion ne correspond pas à EON NOVA.');}
+  if(me?.user?.tenantId!==tenant){cached=null;fail(403,'La conexión no corresponde a EON NOVA.');}
   return cached.token;
  }
  async function handle({path,url,req,res,s,jsonBody,send,body}){
@@ -84,7 +84,7 @@ export function createWorkspace({cms,crm,tenant,serviceEmail,servicePassword,own
   const allowed=(get&&(/^\/(clients|marketing|social)$/.test(route)||/^\/marketing\/(campaigns|audience|calendar)$/.test(route)||/^\/marketing\/campaigns\/[\w-]+\/preview$/.test(route)||/^\/social\/(posts|calendar)$/.test(route)||/^\/social\/posts\/[\w-]+$/.test(route)||/^\/social\/oauth\/[\w-]+\/candidates$/.test(route)))||
    (post&&(/^\/(clients|marketing\/campaigns|social\/posts)$/.test(route)||/^\/marketing\/campaigns\/[\w-]+\/(dispatch|refresh)$/.test(route)||/^\/social\/posts\/[\w-]+\/(approve|cancel|refresh)$/.test(route)||/^\/social\/channels\/[\w-]+\/disconnect$/.test(route)||/^\/social\/oauth\/(meta|youtube|x)\/start$/.test(route)||route==='/social/oauth/complete'||/^\/social\/oauth\/[\w-]+\/confirm$/.test(route)))||
    (patch&&(/^\/clients\/[\w-]+$/.test(route)||/^\/marketing\/campaigns\/[\w-]+$/.test(route)||route==='/marketing/connections'||/^\/social\/posts\/[\w-]+$/.test(route)));
-  if(!allowed)fail(404,'Cette action n’est pas disponible dans le Studio.');
+  if(!allowed)fail(404,'Esta acción no está disponible en el Studio.');
   let input;
   if(!get){
    input=await jsonBody(req);
@@ -92,11 +92,11 @@ export function createWorkspace({cms,crm,tenant,serviceEmail,servicePassword,own
    else if(/^\/marketing\/campaigns(?:\/[\w-]+)?$/.test(route))ensureKeys(input,['title','kind','status','plannedAt','timezone','document','version']);
    else if(route.endsWith('/dispatch')){
     ensureKeys(input,['version','action','clientIds','consentConfirmed']);
-    if(!['EMAIL_TEST','EMAIL_SEND','MAILCHIMP_DRAFT'].includes(input.action))fail(400,'Choisissez une action de mailing valide.');
-    if(input.action==='EMAIL_SEND'&&input.consentConfirmed!==true)fail(400,'Confirmez la liste des destinataires avant l’envoi.');
+    if(!['EMAIL_TEST','EMAIL_SEND','MAILCHIMP_DRAFT'].includes(input.action))fail(400,'Elige una acción de mailing válida.');
+    if(input.action==='EMAIL_SEND'&&input.consentConfirmed!==true)fail(400,'Confirma la lista de destinatarios antes de enviar.');
     const workspace=await request('/marketing',token),setup=workspace.setup||{};
     const configured=input.action==='MAILCHIMP_DRAFT'?setup.mailchimp?.apiKeyConfigured:setup.smtp?.passwordConfigured&&['SMTP','MAILCOW'].includes(setup.provider);
-    if(!configured)fail(409,input.action==='MAILCHIMP_DRAFT'?'Connectez Mailchimp dans Connexions avant de créer un brouillon.':'Configurez votre expéditeur SMTP dans Connexions avant de tester ou d’envoyer une campagne.');
+    if(!configured)fail(409,input.action==='MAILCHIMP_DRAFT'?'Conecta Mailchimp en Conexiones antes de crear un borrador.':'Configura tu remitente SMTP en Conexiones antes de probar o enviar una campaña.');
     delete input.consentConfirmed;
    }else if(route==='/marketing/connections')ensureKeys(input,['provider','config']);
    else if(/^\/social\/posts(?:\/[\w-]+)?$/.test(route)){
@@ -104,11 +104,11 @@ export function createWorkspace({cms,crm,tenant,serviceEmail,servicePassword,own
     const {mediaId,...rest}=input;input={...rest,media:mediaId?await socialMedia.prepare(mediaId,s.access):null};
    }else if(route.endsWith('/approve')){
     ensureKeys(input,['version','action','scheduledAt','confirmed']);
-    if(input.confirmed!==true)fail(400,'Confirmez les comptes et le moment de publication.');delete input.confirmed;
+    if(input.confirmed!==true)fail(400,'Confirma las cuentas y el momento de publicación.');delete input.confirmed;
     const record=await request(route.replace(/\/approve$/,''),token);
-    if(record.version!==input.version)fail(409,'Le brouillon a changé. Rechargez sa dernière version.');
+    if(record.version!==input.version)fail(409,'El borrador cambió. Carga la versión más reciente.');
     const due=input.action==='SCHEDULE'?Date.parse(input.scheduledAt):Date.now();
-    if(!Number.isFinite(due)||due>Date.now()+90*86400000||due<Date.now()-60000)fail(400,'La programmation doit être comprise dans les 90 prochains jours.');
+    if(!Number.isFinite(due)||due>Date.now()+90*86400000||due<Date.now()-60000)fail(400,'La publicación debe programarse dentro de los próximos 90 días.');
     input={...input,media:record.media?.id?await socialMedia.prepare(record.media.id,s.access,due):null};
    }else if(/\/oauth\/(meta|youtube|x)\/start$/.test(route))input={redirectUri:origin+'/social-callback.html'};
    else if(route.endsWith('/oauth/complete'))ensureKeys(input,['state','code']);

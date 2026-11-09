@@ -68,13 +68,13 @@ test('private agenda validates dates, creates server IDs, and escapes calendar c
  const f=fixture();const input={title:'A creative meeting',starts_at:'2026-11-10T16:00:00Z',ends_at:'2026-11-10T17:00:00Z',timezone:'America/Mexico_City'};
  const created=await f.invoke('/api/workspace/events','POST',input);assert.equal(created.status,201);assert.match(created.data.id,/^[a-f\d-]{36}$/);
  assert.throws(()=>eventInput({...input,ends_at:input.starts_at},true),/fin/);
- assert.throws(()=>eventInput({...input,timezone:'Unknown/Zone'},true),/fuseau/);
- assert.throws(()=>eventInput({...input,id:'submitted-id'},true),/non autorisés/);
+ assert.throws(()=>eventInput({...input,timezone:'Unknown/Zone'},true),/zona horaria/);
+ assert.throws(()=>eventInput({...input,id:'submitted-id'},true),/no permitidos/);
  const ics=agendaIcs([{...input,id,title:'Titre\nBEGIN:VEVENT',notes:'Notes, privées; 👋 '.repeat(10)}]);assert.match(ics,/SUMMARY:Titre\\nBEGIN:VEVENT/);assert.equal((ics.match(/\r\nBEGIN:VEVENT/g)||[]).length,1);
  for(const line of ics.split('\r\n'))assert.ok(Buffer.byteLength(line)<=75);
  assert.equal(toUtc('2026-11-10T10:00','America/Mexico_City'),'2026-11-10T16:00:00.000Z');
- assert.throws(()=>toUtc('2026-11-01T01:30','America/New_York'),/ambiguë/);
- assert.throws(()=>toUtc('2027-03-14T02:30','America/New_York'),/n’existe pas/);
+ assert.throws(()=>toUtc('2026-11-01T01:30','America/New_York'),/ambigua/);
+ assert.throws(()=>toUtc('2027-03-14T02:30','America/New_York'),/no existe/);
 });
 
 test('social media leases expire, reject changes and do not authorize another file',()=>{

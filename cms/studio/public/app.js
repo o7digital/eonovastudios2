@@ -1,4 +1,4 @@
-import {createWorkspaceUI,workspaceSections} from './workspace-ui.js';
+import {createWorkspaceUI,workspaceSections} from './workspace-ui.js?v=es-mx-1';
 const $ = selector => document.querySelector(selector);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const plain = value => String(value ?? '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -15,16 +15,16 @@ const symbols = {
 };
 const icon = name => `<svg viewBox="0 0 24 24" aria-hidden="true">${symbols[name] || symbols.home}</svg>`;
 const sections = [
-  {id:'hero',name:'Accueil',number:'01',word:'IDEAS.',description:'L’entrée dans votre univers.',detail:'Titre, introduction et premiers mots du site.',anchor:'inicio'},
-  {id:'motion',name:'Motion Lab',number:'02',word:'MOTION.',description:'Vos explorations en mouvement.',detail:'Disciplines, études et légendes du laboratoire.',anchor:'universos'},
-  {id:'studio',name:'Le studio',number:'03',word:'STUDIO.',description:'L’histoire derrière les idées.',detail:'Présentation du studio et de ses disciplines.',anchor:'studio'},
-  {id:'services',name:'Services & contact',number:'04',word:'CREATE.',description:'Vos savoir-faire, votre signature.',detail:'Services, processus et invitation à vous contacter.',anchor:'servicios'},
-  {id:'footer',name:'Pied de page',number:'05',word:'NEXT.',description:'Le prochain frame vous attend.',detail:'Signature et derniers mots du site.',anchor:'contacto'},
-  {id:'interface',name:'Langues & interface',number:'06',word:'HELLO.',description:'Les détails qui font le lien.',detail:'Navigation, commandes et textes partagés.',anchor:'inicio'},
+  {id:'hero',name:'Inicio',number:'01',word:'IDEAS.',description:'La entrada a tu universo.',detail:'Título, introducción y primeras palabras del sitio.',anchor:'inicio'},
+  {id:'motion',name:'Motion Lab',number:'02',word:'MOTION.',description:'Tus exploraciones en movimiento.',detail:'Disciplinas, estudios y descripciones del laboratorio.',anchor:'universos'},
+  {id:'studio',name:'El estudio',number:'03',word:'STUDIO.',description:'La historia detrás de las ideas.',detail:'Presentación del estudio y sus disciplinas.',anchor:'studio'},
+  {id:'services',name:'Servicios y contacto',number:'04',word:'CREATE.',description:'Tu experiencia, tu sello.',detail:'Servicios, proceso e invitación a contactarte.',anchor:'servicios'},
+  {id:'footer',name:'Pie de página',number:'05',word:'NEXT.',description:'Tu próximo frame te espera.',detail:'Firma y últimas palabras del sitio.',anchor:'contacto'},
+  {id:'interface',name:'Idiomas e interfaz',number:'06',word:'HELLO.',description:'Los detalles que conectan.',detail:'Navegación, controles y textos compartidos.',anchor:'inicio'},
 ];
-const languages = {es:{name:'Español',label:'ES'},en:{name:'English',label:'EN'},fr:{name:'Français',label:'FR'}};
-const placementLabels = {hero:'Accueil · grand visuel',studio:'Le studio',graphic:'Design graphique',digital:'Design digital'};
-const statusLabel = {published:'À inclure dans le site',draft:'Brouillon',archived:'Archivé'};
+const languages = {es:{name:'Español',label:'ES'},en:{name:'Inglés',label:'EN'},fr:{name:'Francés',label:'FR'}};
+const placementLabels = {hero:'Inicio · imagen principal',studio:'El estudio',graphic:'Diseño gráfico',digital:'Diseño digital'};
+const statusLabel = {published:'Incluir en el sitio',draft:'Borrador',archived:'Archivado'};
 const state = {texts:[],media:[],drafts:new Map(),route:'overview',lang:'es',filter:'',busy:false,profile:{},publishReady:false,canEdit:false,mediaEdit:null};
 const workspace=createWorkspaceUI({api,toast,confirmDialog,isCurrent:route=>state.route===route});
 let toastTimer, previewBlob;
@@ -32,55 +32,55 @@ function toast(message, error = false) { const node=$('#toast');node.textContent
 async function api(path, options = {}) {
   const response=await fetch(path,{credentials:'same-origin',...options,headers:{...(options.body && !(options.body instanceof Blob)?{'Content-Type':'application/json'}:{}),...options.headers}});
   const result=await response.json();
-  if(!response.ok){if(response.status===401 && path!=='/api/login')showLogin();throw new Error(result.error || 'Cette action n’a pas abouti.');}
+  if(!response.ok){if(response.status===401 && path!=='/api/login')showLogin();throw new Error(result.error || 'No se pudo completar esta acción.');}
   return result;
 }
 function showLogin(){ $('#login-view').hidden=false;$('#studio-view').hidden=true;state.drafts.clear();workspace.reset();state.profile={};state.texts=[];state.media=[];$('#password').value=''; }
 function nav(){
-  const links=[{id:'overview',name:'Vue d’ensemble',icon:'home'},...sections.map(s=>({...s,icon:s.id})),{id:'media',name:'Images du site',icon:'media'}];
+  const links=[{id:'overview',name:'Vista general',icon:'home'},...sections.map(s=>({...s,icon:s.id})),{id:'media',name:'Imágenes del sitio',icon:'media'}];
   $('#main-nav').innerHTML=links.map(s=>`${s.id==='media'?'<div class="nav-separator"></div>':''}<a class="nav-item ${state.route===s.id?'active':''}" href="#${s.id}" ${state.route===s.id?'aria-current="page"':''}>${icon(s.icon)}<span>${s.name}</span>${s.id==='overview'?'':`<small class="nav-count">${s.id==='media'?state.media.filter(row=>row.status==='published').length:state.texts.filter(row=>row.section===s.id).length}</small>`}</a>`).join('');
-  $('#main-nav').insertAdjacentHTML('beforeend','<div class="nav-separator"></div><div class="nav-heading suite-nav-heading">FAIRE VIVRE LE STUDIO</div>'+workspaceSections.map(s=>`<a class="nav-item ${state.route===s.id?'active':''}" href="#${s.id}" ${state.route===s.id?'aria-current="page"':''}><span class="nav-glyph" aria-hidden="true">${s.glyph}</span><span>${s.name}</span></a>`).join(''));
+  $('#main-nav').insertAdjacentHTML('beforeend','<div class="nav-separator"></div><div class="nav-heading suite-nav-heading">DALE VIDA AL STUDIO</div>'+workspaceSections.map(s=>`<a class="nav-item ${state.route===s.id?'active':''}" href="#${s.id}" ${state.route===s.id?'aria-current="page"':''}><span class="nav-glyph" aria-hidden="true">${s.glyph}</span><span>${s.name}</span></a>`).join(''));
 }
 function pageHeading(eyebrow,title,description,actions=''){
   return `<div class="page-heading"><div><span class="eyebrow">${eyebrow}</span><h1>${title}</h1><p>${description}</p></div>${actions?`<div class="heading-actions">${actions}</div>`:''}</div>`;
 }
-function viewLinks(anchor){return `<a class="button secondary" href="https://www.eonovastudios.com/${state.lang==='es'?'':state.lang+'/'}#${anchor}" target="_blank" rel="noopener">Voir la rubrique <span>↗</span></a>`;}
-function publicationCard(){return `<article class="publication-card"><span class="eyebrow">LE PROCHAIN CHAPITRE</span><div class="publication-state"><span class="state-icon">↗</span><h3>${state.publishReady?'Donnez vie aux changements.':'Votre contenu, à votre rythme.'}</h3></div><p>${state.publishReady?'Enregistrez vos changements, puis publiez la nouvelle version de votre site.':'Modifiez et enregistrez vos contenus dès maintenant. La publication automatique sera connectée plus tard.'}</p><button class="button ${state.publishReady?'primary':'secondary'}" data-publish ${!state.publishReady?'disabled':''}>${state.publishReady?'Publier mon site':'Publication à connecter'} <span>↗</span></button><p class="small-note">Les modifications enregistrées restent dans votre espace.</p></article>`;}
+function viewLinks(anchor){return `<a class="button secondary" href="https://www.eonovastudios.com/${state.lang==='es'?'':state.lang+'/'}#${anchor}" target="_blank" rel="noopener">Ver sección <span>↗</span></a>`;}
+function publicationCard(){return `<article class="publication-card"><span class="eyebrow">EL PRÓXIMO CAPÍTULO</span><div class="publication-state"><span class="state-icon">↗</span><h3>${state.publishReady?'Dale vida a tus cambios.':'Tu contenido, a tu ritmo.'}</h3></div><p>${state.publishReady?'Guarda tus cambios y publica la nueva versión de tu sitio.':'Edita y guarda tu contenido desde ahora. La publicación automática se conectará más adelante.'}</p><button class="button ${state.publishReady?'primary':'secondary'}" data-publish ${!state.publishReady?'disabled':''}>${state.publishReady?'Publicar mi sitio':'Publicación pendiente de conexión'} <span>↗</span></button><p class="small-note">Los cambios guardados permanecen en tu espacio.</p></article>`;}
 function overview(){
   const published=state.texts.filter(row=>row.status==='published').length;
   const drafts=state.texts.filter(row=>row.status==='draft').length;
-  return pageHeading('VUE D’ENSEMBLE / EON NOVA','Votre imagination. Votre Studio.','Tout ce qui fait vivre votre site, réuni dans un espace à vous.')+
-    `<div class="welcome-grid"><article class="welcome-card"><span class="eyebrow">BIENVENUE DANS VOTRE UNIVERS</span><h2>De l’idée<br>au prochain <em>frame.</em></h2><p>Vos textes et vos images donnent le ton.<br>À vous de faire évoluer l’histoire.</p><a class="text-link" href="#hero">Commencer par l’accueil ↗</a><span class="welcome-star" aria-hidden="true">✳</span></article>${publicationCard()}</div>`+
-    `<div class="stats-grid">${[[published,'01 / TEXTES ACTIFS','Les mots de votre univers'],[state.media.filter(row=>row.status==='published').length,'02 / IMAGES DU SITE','Vos visuels personnalisés'],[3,'03 / LANGUES','Español · English · Français'],[drafts,'04 / BROUILLONS','Les idées en préparation']].map(([value,label,detail])=>`<article class="stat-card"><span class="stat-label">${label}</span><div class="stat-value">${value}</div><p class="stat-detail">${detail}</p></article>`).join('')}</div>`+
-    `${state.drafts.size?`<div class="editor-intro">${icon('info')}<span>${state.drafts.size} texte(s) modifié(s) attendent d’être enregistrés. Vos saisies restent disponibles dans leurs rubriques.</span></div>`:''}`+
-    `<div class="section-title"><h2>Votre site, rubrique par rubrique.</h2><span>06 ESPACES À EXPLORER</span></div><div class="section-grid">${sections.map(s=>`<a class="section-card" href="#${s.id}"><div class="section-art art-${s.id}"><span class="art-number">${s.number} / EON NOVA</span><span class="art-word">${s.word}</span></div><div class="section-card-copy"><div class="section-card-top"><h3>${s.name}</h3><span>↗</span></div><p>${s.description}</p><div class="card-meta"><span>${state.texts.filter(row=>row.section===s.id).length} textes</span><i class="dot"></i><span>3 langues</span><i class="dot"></i><span>Modifier ↗</span></div></div></a>`).join('')}</div>`+
-    `<div class="quick-links"><div><strong>Une image peut tout changer.</strong><p>Personnalisez les visuels de votre site, à votre façon.</p></div><a href="#media"><strong>Ouvrir la médiathèque</strong><span>↗</span></a></div><div class="section-title suite-section-title"><h2>Votre Studio va plus loin.</h2></div><div class="suite-launch-grid">${workspaceSections.map(s=>`<a href="#${s.id}" class="suite-launch"><span>${s.glyph}</span><strong>${s.name}</strong><small>Ouvrir l’espace ↗</small></a>`).join('')}</div>`;
+  return pageHeading('VISTA GENERAL / EON NOVA','Tu imaginación. Tu Studio.','Todo lo que le da vida a tu sitio, reunido en tu propio espacio.')+
+    `<div class="welcome-grid"><article class="welcome-card"><span class="eyebrow">BIENVENIDO A TU UNIVERSO</span><h2>De la idea<br>al próximo <em>frame.</em></h2><p>Tus textos e imágenes marcan el tono.<br>Escribe el próximo capítulo.</p><a class="text-link" href="#hero">Empezar por el inicio ↗</a><span class="welcome-star" aria-hidden="true">✳</span></article>${publicationCard()}</div>`+
+    `<div class="stats-grid">${[[published,'01 / TEXTOS ACTIVOS','Las palabras de tu universo'],[state.media.filter(row=>row.status==='published').length,'02 / IMÁGENES DEL SITIO','Tus imágenes personalizadas'],[3,'03 / IDIOMAS','Español · Inglés · Francés'],[drafts,'04 / BORRADORES','Las ideas en preparación']].map(([value,label,detail])=>`<article class="stat-card"><span class="stat-label">${label}</span><div class="stat-value">${value}</div><p class="stat-detail">${detail}</p></article>`).join('')}</div>`+
+    `${state.drafts.size?`<div class="editor-intro">${icon('info')}<span>${state.drafts.size} texto(s) modificado(s) pendiente(s) de guardar. Tus cambios siguen disponibles en cada sección.</span></div>`:''}`+
+    `<div class="section-title"><h2>Tu sitio, sección por sección.</h2><span>06 ESPACIOS POR EXPLORAR</span></div><div class="section-grid">${sections.map(s=>`<a class="section-card" href="#${s.id}"><div class="section-art art-${s.id}"><span class="art-number">${s.number} / EON NOVA</span><span class="art-word">${s.word}</span></div><div class="section-card-copy"><div class="section-card-top"><h3>${s.name}</h3><span>↗</span></div><p>${s.description}</p><div class="card-meta"><span>${state.texts.filter(row=>row.section===s.id).length} textos</span><i class="dot"></i><span>3 idiomas</span><i class="dot"></i><span>Editar ↗</span></div></div></a>`).join('')}</div>`+
+    `<div class="quick-links"><div><strong>Una imagen puede cambiarlo todo.</strong><p>Personaliza las imágenes de tu sitio, a tu manera.</p></div><a href="#media"><strong>Abrir biblioteca de medios</strong><span>↗</span></a></div><div class="section-title suite-section-title"><h2>Tu Studio va más allá.</h2></div><div class="suite-launch-grid">${workspaceSections.map(s=>`<a href="#${s.id}" class="suite-launch"><span>${s.glyph}</span><strong>${s.name}</strong><small>Abrir espacio ↗</small></a>`).join('')}</div>`;
 }
 function currentRows(){return state.texts.filter(row=>row.section===state.route);}
 function values(row){return {...row,...state.drafts.get(row.id)};}
 function editableCard(row){
   const data=values(row),title=plain(row.label || row.source),long=row.source.length>160;
-  return `<article class="text-card ${long?'long':''} ${state.drafts.has(row.id)?'changed':''}" data-card="${row.id}"><div class="field-head"><label class="field-label" for="text-${row.id}">${esc(title)}</label><span class="field-status ${esc(data.status)}" data-badge="${row.id}">${data.status==='published'?'Prêt pour le site':data.status==='draft'?'Brouillon':'Archivé'}</span></div>${state.lang!=='es'?`<p class="source-hint">Español · ${esc(plain(data.es))}</p>`:''}<textarea id="text-${row.id}" data-text="${row.id}" rows="${long?5:3}" ${!state.canEdit?'readonly':''} lang="${state.lang}" spellcheck="true">${esc(data[state.lang])}</textarea><div class="field-foot"><span><i class="editable-dot"></i>${state.canEdit?'Modifiable':'Lecture seule'} · ${languages[state.lang].name}</span><select aria-label="Visibilité : ${esc(title.slice(0,90))}" data-status="${row.id}" ${!state.canEdit?'disabled':''}>${Object.entries(statusLabel).map(([value,label])=>`<option value="${value}" ${value===data.status?'selected':''}>${label}</option>`).join('')}</select></div></article>`;
+  return `<article class="text-card ${long?'long':''} ${state.drafts.has(row.id)?'changed':''}" data-card="${row.id}"><div class="field-head"><label class="field-label" for="text-${row.id}">${esc(title)}</label><span class="field-status ${esc(data.status)}" data-badge="${row.id}">${data.status==='published'?'Listo para el sitio':data.status==='draft'?'Borrador':'Archivado'}</span></div>${state.lang!=='es'?`<p class="source-hint">Español · ${esc(plain(data.es))}</p>`:''}<textarea id="text-${row.id}" data-text="${row.id}" rows="${long?5:3}" ${!state.canEdit?'readonly':''} lang="${state.lang}" spellcheck="true">${esc(data[state.lang])}</textarea><div class="field-foot"><span><i class="editable-dot"></i>${state.canEdit?'Editable':'Solo lectura'} · ${languages[state.lang].name}</span><select aria-label="Visibilidad: ${esc(title.slice(0,90))}" data-status="${row.id}" ${!state.canEdit?'disabled':''}>${Object.entries(statusLabel).map(([value,label])=>`<option value="${value}" ${value===data.status?'selected':''}>${label}</option>`).join('')}</select></div></article>`;
 }
-function saveBar(){return `<div class="editor-savebar"><div><strong id="save-summary">${pendingSummary()}</strong><small>Enregistrer conserve vos textes. La publication du site est une étape distincte.</small></div><div class="savebar-actions"><button class="button secondary" data-revert ${!sectionDirty()?'disabled':''}>Annuler les modifications</button><button class="button primary" data-save ${!sectionDirty()||!state.canEdit?'disabled':''}>Enregistrer la rubrique <span>↗</span></button></div></div>`;}
+function saveBar(){return `<div class="editor-savebar"><div><strong id="save-summary">${pendingSummary()}</strong><small>Guardar conserva tus textos. Publicar el sitio es un paso aparte.</small></div><div class="savebar-actions"><button class="button secondary" data-revert ${!sectionDirty()?'disabled':''}>Descartar cambios</button><button class="button primary" data-save ${!sectionDirty()||!state.canEdit?'disabled':''}>Guardar sección <span>↗</span></button></div></div>`;}
 function sectionDirty(){return currentRows().filter(row=>state.drafts.has(row.id)).length;}
-function pendingSummary(){const n=sectionDirty();return n?`${n} texte${n>1?'s':''} à enregistrer`:'Tous vos textes sont enregistrés';}
+function pendingSummary(){const n=sectionDirty();return n?`${n} texto${n!==1?'s':''} por guardar`:'Todos tus textos están guardados';}
 function editor(){
   const section=sections.find(s=>s.id===state.route);
-  return pageHeading(`${section.number} / VOTRE SITE`,section.name,section.detail,viewLinks(section.anchor))+
-    `<div class="editor-intro">${icon('info')}<span>Choisissez une langue et modifiez vos textes. Les champs verts sont éditables. Les balises <strong>&lt;br&gt;</strong> et <strong>&lt;em&gt;</strong> conservent les retours à la ligne et les accents du site.</span></div>`+
-    `<div class="editor-toolbar"><div class="language-tabs" role="group" aria-label="Langue d’édition">${Object.entries(languages).map(([key,value])=>`<button class="language-tab ${state.lang===key?'active':''}" data-language="${key}" aria-pressed="${state.lang===key}">${value.name}<small>${value.label}</small></button>`).join('')}</div><label class="sr-only" for="text-search">Rechercher un texte</label><input id="text-search" class="search-box" type="search" placeholder="Rechercher dans cette rubrique…" value="${esc(state.filter)}"></div>`+
-    `<div class="field-list">${currentRows().map(editableCard).join('')}</div><p id="search-empty" class="muted" hidden>Aucun texte ne correspond à votre recherche.</p>${saveBar()}`;
+  return pageHeading(`${section.number} / TU SITIO`,section.name,section.detail,viewLinks(section.anchor))+
+    `<div class="editor-intro">${icon('info')}<span>Elige un idioma y edita tus textos. Los campos verdes son editables. Las etiquetas <strong>&lt;br&gt;</strong> y <strong>&lt;em&gt;</strong> conservan los saltos de línea y el énfasis del sitio.</span></div>`+
+    `<div class="editor-toolbar"><div class="language-tabs" role="group" aria-label="Idioma del contenido">${Object.entries(languages).map(([key,value])=>`<button class="language-tab ${state.lang===key?'active':''}" data-language="${key}" aria-pressed="${state.lang===key}">${value.name}<small>${value.label}</small></button>`).join('')}</div><label class="sr-only" for="text-search">Buscar texto</label><input id="text-search" class="search-box" type="search" placeholder="Buscar en esta sección…" value="${esc(state.filter)}"></div>`+
+    `<div class="field-list">${currentRows().map(editableCard).join('')}</div><p id="search-empty" class="muted" hidden>No hay textos que coincidan con tu búsqueda.</p>${saveBar()}`;
 }
-function mediaPage(){return pageHeading('VOTRE UNIVERS VISUEL','Les images donnent le ton.','Personnalisez les quatre emplacements du site. Les visuels animés d’origine restent disponibles.')+
-  `<div class="editor-intro">${icon('info')}<span>Chaque emplacement accueille une image. Les fichiers sont conservés dans votre médiathèque et deviennent visibles sur le site après publication.</span></div>`+
+function mediaPage(){return pageHeading('TU UNIVERSO VISUAL','Las imágenes marcan el tono.','Personaliza las cuatro ubicaciones del sitio. Las imágenes animadas originales siguen disponibles.')+
+  `<div class="editor-intro">${icon('info')}<span>Cada ubicación admite una imagen. Los archivos se guardan en tu biblioteca y aparecen en el sitio después de publicarlo.</span></div>`+
   `<div class="media-grid">${Object.entries(placementLabels).map(([placement,label],index)=>{
     const row=state.media.find(row=>row.placement===placement),shown=row && row.status==='published';
-    return `<article class="media-card"><div class="media-visual">${row?.image?.id?`<img src="/api/image/${row.image.id}" alt="${esc(row.alt_fr)}" loading="lazy">`:'<span class="media-default">✳</span>'}${!shown?'<span class="original-label">LE VISUEL D’ORIGINE RESTE ACTIF</span>':''}</div><div class="media-card-body"><div class="media-card-heading"><h3>${label}</h3><span class="eyebrow">0${index+1}</span></div><p>${row?`${esc(row.image?.filename_download || 'Image')} · ${esc(statusLabel[row.status] || row.status)}`:'Ajoutez votre visuel, ou conservez l’exploration originale.'}</p><div class="media-card-actions"><button class="button ${row?'secondary':'primary'}" data-edit-media="${placement}" ${!state.canEdit?'disabled':''}>${row?'Modifier le visuel':'Ajouter une image'} <span>↗</span></button>${row && row.status!=='archived'?`<button class="button secondary" data-archive-media="${row.id}" ${!state.canEdit?'disabled':''}>Retrouver l’original</button>`:''}</div></div></article>`;
+    return `<article class="media-card"><div class="media-visual">${row?.image?.id?`<img src="/api/image/${row.image.id}" alt="${esc(row.alt_es)}" loading="lazy">`:'<span class="media-default">✳</span>'}${!shown?'<span class="original-label">LA IMAGEN ORIGINAL SIGUE ACTIVA</span>':''}</div><div class="media-card-body"><div class="media-card-heading"><h3>${label}</h3><span class="eyebrow">0${index+1}</span></div><p>${row?`${esc(row.image?.filename_download || 'Image')} · ${esc(statusLabel[row.status] || row.status)}`:'Agrega tu imagen o conserva la creación original.'}</p><div class="media-card-actions"><button class="button ${row?'secondary':'primary'}" data-edit-media="${placement}" ${!state.canEdit?'disabled':''}>${row?'Editar imagen':'Agregar imagen'} <span>↗</span></button>${row && row.status!=='archived'?`<button class="button secondary" data-archive-media="${row.id}" ${!state.canEdit?'disabled':''}>Restaurar original</button>`:''}</div></div></article>`;
   }).join('')}</div>`;
 }
 function render(){
-  nav();$('#breadcrumb').textContent=state.route==='overview'?'Vue d’ensemble':state.route==='media'?'Images du site':(sections.find(s=>s.id===state.route)||workspaceSections.find(s=>s.id===state.route)).name;
+  nav();$('#breadcrumb').textContent=state.route==='overview'?'Vista general':state.route==='media'?'Imágenes del sitio':(sections.find(s=>s.id===state.route)||workspaceSections.find(s=>s.id===state.route)).name;
   if(workspaceSections.some(s=>s.id===state.route)){workspace.open(state.route);return;}
   $('#content').innerHTML=state.route==='overview'?overview():state.route==='media'?mediaPage():editor();
   $('#content').querySelectorAll('[data-publish]').forEach(button=>button.addEventListener('click',publish));
@@ -88,7 +88,7 @@ function render(){
   $('#content').querySelectorAll('[data-text]').forEach(input=>input.addEventListener('input',()=>{recordDraft(input.dataset.text,state.lang,input.value);updatePending();}));
   $('#content').querySelectorAll('[data-status]').forEach(input=>input.addEventListener('change',()=>{recordDraft(input.dataset.status,'status',input.value);updatePending();}));
   $('#content').querySelector('[data-save]')?.addEventListener('click',saveTexts);
-  $('#content').querySelector('[data-revert]')?.addEventListener('click',async()=>{if(await confirmDialog('Annuler les modifications ?','Les textes enregistrés seront conservés. Seules les saisies de cette rubrique seront retirées.')){for(const row of currentRows())state.drafts.delete(row.id);render();}});
+  $('#content').querySelector('[data-revert]')?.addEventListener('click',async()=>{if(await confirmDialog('¿Descartar los cambios?','Los textos guardados se conservan. Solo se descartan los cambios sin guardar de esta sección.')){for(const row of currentRows())state.drafts.delete(row.id);render();}});
   $('#text-search')?.addEventListener('input',event=>{state.filter=event.target.value;filterCards();});
   $('#content').querySelectorAll('[data-edit-media]').forEach(button=>button.addEventListener('click',()=>openMedia(button.dataset.editMedia)));
   $('#content').querySelectorAll('[data-archive-media]').forEach(button=>button.addEventListener('click',()=>archiveMedia(button.dataset.archiveMedia)));
@@ -104,7 +104,7 @@ function updatePending(){
   $('[data-save]').disabled=!sectionDirty()||state.busy||!state.canEdit;$('[data-revert]').disabled=!sectionDirty()||state.busy;
   for(const row of currentRows()){
     const data=values(row);$(`[data-card="${row.id}"]`)?.classList.toggle('changed',state.drafts.has(row.id));
-    const badge=$(`[data-badge="${row.id}"]`);if(badge){badge.className='field-status '+data.status;badge.textContent=data.status==='published'?'Prêt pour le site':data.status==='draft'?'Brouillon':'Archivé';}
+    const badge=$(`[data-badge="${row.id}"]`);if(badge){badge.className='field-status '+data.status;badge.textContent=data.status==='published'?'Listo para el sitio':data.status==='draft'?'Borrador':'Archivado';}
   }
 }
 function filterCards(){if(!$('#text-search'))return;let count=0;for(const row of currentRows()){const match=(plain(row.label)+' '+plain(values(row)[state.lang])).toLocaleLowerCase().includes(state.filter.toLocaleLowerCase());$(`[data-card="${row.id}"]`).hidden=!match;if(match)count++;}$('#search-empty').hidden=count>0;}
@@ -112,17 +112,17 @@ async function saveTexts(){
   if(state.busy)return;
   const items=currentRows().filter(row=>state.drafts.has(row.id)).map(row=>({id:row.id,...state.drafts.get(row.id)}));
   if(!items.length)return;
-  if(items.some(row=>Object.keys(languages).some(lang=>row[lang]!==undefined&&!row[lang].trim())))return toast('Conservez un texte dans chaque langue.',true);
-  state.busy=true;updatePending();const button=$('[data-save]');button.textContent='Enregistrement…';
+  if(items.some(row=>Object.keys(languages).some(lang=>row[lang]!==undefined&&!row[lang].trim())))return toast('Conserva un texto en cada idioma.',true);
+  state.busy=true;updatePending();const button=$('[data-save]');button.textContent='Guardando…';
   try{
     const rows=await api('/api/texts',{method:'PATCH',body:JSON.stringify({items})});
     for(const row of rows){const index=state.texts.findIndex(item=>item.id===row.id);state.texts[index]=row;state.drafts.delete(row.id);}
-    toast('Votre rubrique est enregistrée.');
+    toast('Tu sección está guardada.');
   }catch(error){toast(error.message,true);}finally{state.busy=false;render();}
 }
 async function load(){
   const data=await api('/api/bootstrap');Object.assign(state,data);
-  const actualName=data.profile.name && data.profile.name!=='Admin User'?data.profile.name:'Mon Studio';
+  const actualName=data.profile.name && data.profile.name!=='Admin User'?data.profile.name:'Mi Studio';
   $('#user-name').textContent=actualName;$('#user-email').textContent=data.profile.email;$('#user-avatar').textContent=(actualName[0]||'E').toUpperCase();
   $('#login-view').hidden=true;$('#studio-view').hidden=false;route();
 }
@@ -141,17 +141,17 @@ function confirmDialog(title,message){
 }
 async function publish(){
   if(!state.publishReady)return;
-  if(state.drafts.size)return toast('Enregistrez d’abord vos textes modifiés.',true);
-  if(!await confirmDialog('Publier les changements ?','La nouvelle version de votre site sera générée avec les textes et images prêts pour le site.'))return;
+  if(state.drafts.size)return toast('Primero guarda los textos modificados.',true);
+  if(!await confirmDialog('¿Publicar los cambios?','La nueva versión del sitio se generará con los textos e imágenes listos para publicar.'))return;
   try{const result=await api('/api/publish',{method:'POST',body:'{}'});toast(result.message);}catch(error){toast(error.message,true);}
 }
 function openMedia(placement){
   const row=state.media.find(row=>row.placement===placement);
   state.mediaEdit={id:row?.id,fileId:row?.image?.id,placement};
-  $('#media-dialog-title').textContent=row?'Modifier le visuel':'Ajouter une image';$('#media-form').reset();$('#media-placement').value=placement;$('#media-placement').disabled=Boolean(row);
+  $('#media-dialog-title').textContent=row?'Editar imagen':'Agregar imagen';$('#media-form').reset();$('#media-placement').value=placement;$('#media-placement').disabled=Boolean(row);
   for(const lang of Object.keys(languages))$(`#alt-${lang}`).value=row?.[`alt_${lang}`] || '';
   $('#media-status').value=row?.status==='archived'?'published':row?.status || 'published';
-  $('#upload-label').textContent=row?.image?.filename_download || 'Choisir une image';$('#media-error').hidden=true;$('#media-preview').hidden=!row?.image?.id;
+  $('#upload-label').textContent=row?.image?.filename_download || 'Elegir imagen';$('#media-error').hidden=true;$('#media-preview').hidden=!row?.image?.id;
   if(row?.image?.id)$('#media-preview').src='/api/image/'+row.image.id;
   for(const option of $('#media-placement').options)option.disabled=option.value!==placement&&state.media.some(row=>row.placement===option.value);
   $('#media-dialog').showModal();
@@ -164,19 +164,19 @@ $('#media-file').addEventListener('change',()=>{
 });
 $('#media-form').addEventListener('submit',async event=>{
   event.preventDefault();const button=$('#save-media'),edit=state.mediaEdit,file=$('#media-file').files[0];if(!edit)return;
-  if(!edit.fileId&&!file){$('#media-error').textContent='Choisissez une image.';$('#media-error').hidden=false;return;}
-  if(file&&(!['image/jpeg','image/png','image/webp','image/avif','image/gif'].includes(file.type)||file.size>25*1024*1024)){ $('#media-error').textContent='Choisissez une image compatible de 25 Mo maximum.';$('#media-error').hidden=false;return; }
-  button.disabled=true;button.textContent='Enregistrement…';$('#media-error').hidden=true;
+  if(!edit.fileId&&!file){$('#media-error').textContent='Elige una imagen.';$('#media-error').hidden=false;return;}
+  if(file&&(!['image/jpeg','image/png','image/webp','image/avif','image/gif'].includes(file.type)||file.size>25*1024*1024)){ $('#media-error').textContent='Elige una imagen compatible de máximo 25 MB.';$('#media-error').hidden=false;return; }
+  button.disabled=true;button.textContent='Guardando…';$('#media-error').hidden=true;
   try{
     if(file&&!edit.fileId){const uploaded=await api('/api/upload',{method:'POST',body:file,headers:{'Content-Type':file.type,'X-File-Name':encodeURIComponent(file.name)}});edit.fileId=uploaded.id;}
     const input={placement:$('#media-placement').value,image:edit.fileId,status:$('#media-status').value,...Object.fromEntries(Object.keys(languages).map(lang=>['alt_'+lang,$('#alt-'+lang).value.trim()]))};
     const result=await api('/api/media'+(edit.id?'/'+edit.id:''),{method:edit.id?'PATCH':'POST',body:JSON.stringify(input)});
-    state.media=state.media.filter(row=>row.id!==result.id);state.media.push(result);button.disabled=false;closeMedia();render();toast('Votre image est enregistrée.');
-  }catch(error){$('#media-error').textContent=error.message;$('#media-error').hidden=false;}finally{button.disabled=false;button.innerHTML='Enregistrer l’image <span>↗</span>';}
+    state.media=state.media.filter(row=>row.id!==result.id);state.media.push(result);button.disabled=false;closeMedia();render();toast('Tu imagen está guardada.');
+  }catch(error){$('#media-error').textContent=error.message;$('#media-error').hidden=false;}finally{button.disabled=false;button.innerHTML='Guardar imagen <span>↗</span>';}
 });
 async function archiveMedia(id){
-  if(!await confirmDialog('Retrouver le visuel d’origine ?','L’image reste dans votre médiathèque. Au prochain déploiement, le site utilisera son visuel original.'))return;
-  try{const row=await api('/api/media/'+id,{method:'PATCH',body:JSON.stringify({status:'archived'})});state.media=state.media.map(item=>item.id===id?row:item);render();toast('Le visuel d’origine sera rétabli au prochain déploiement.');}catch(error){toast(error.message,true);}
+  if(!await confirmDialog('¿Restaurar la imagen original?','La imagen se conserva en tu biblioteca. La próxima vez que se publique el sitio, se usará la imagen original.'))return;
+  try{const row=await api('/api/media/'+id,{method:'PATCH',body:JSON.stringify({status:'archived'})});state.media=state.media.map(item=>item.id===id?row:item);render();toast('La imagen original se restaurará en la próxima publicación del sitio.');}catch(error){toast(error.message,true);}
 }
 $('#close-media').addEventListener('click',closeMedia);$('#cancel-media').addEventListener('click',closeMedia);
 $('#media-dialog').addEventListener('cancel',event=>{event.preventDefault();closeMedia();});
@@ -185,11 +185,11 @@ $('#main-nav').addEventListener('click',event=>{if(event.target.closest('a'))clo
 window.addEventListener('keydown',event=>{if(event.key==='Escape')closeMenu();});
 window.addEventListener('hashchange',()=>{if(!$('#studio-view').hidden)route();});
 window.addEventListener('beforeunload',event=>{if(state.drafts.size||workspace.hasUnsaved()){event.preventDefault();event.returnValue='';}});
-$('#show-password').addEventListener('click',()=>{const password=$('#password'),visible=password.type==='password';password.type=visible?'text':'password';$('#show-password').textContent=visible?'Masquer':'Voir';$('#show-password').setAttribute('aria-label',visible?'Masquer le mot de passe':'Afficher le mot de passe');});
+$('#show-password').addEventListener('click',()=>{const password=$('#password'),visible=password.type==='password';password.type=visible?'text':'password';$('#show-password').textContent=visible?'Ocultar':'Ver';$('#show-password').setAttribute('aria-label',visible?'Ocultar contraseña':'Mostrar contraseña');});
 $('#login-form').addEventListener('submit',async event=>{
-  event.preventDefault();const button=event.target.querySelector('[type="submit"]');button.disabled=true;button.textContent='Ouverture de votre Studio…';$('#login-error').hidden=true;
+  event.preventDefault();const button=event.target.querySelector('[type="submit"]');button.disabled=true;button.textContent='Abriendo tu Studio…';$('#login-error').hidden=true;
   try{await api('/api/login',{method:'POST',body:JSON.stringify({email:$('#email').value.trim(),password:$('#password').value})});$('#password').value='';await load();}
-  catch(error){$('#login-error').textContent=error.message;$('#login-error').hidden=false;}finally{button.disabled=false;button.innerHTML='Entrer dans mon Studio <span>↗</span>';}
+  catch(error){$('#login-error').textContent=error.message;$('#login-error').hidden=false;}finally{button.disabled=false;button.innerHTML='Entrar a mi Studio <span>↗</span>';}
 });
-$('#logout').addEventListener('click',async()=>{if((state.drafts.size||workspace.hasUnsaved())&&!await confirmDialog('Quitter le Studio ?','Vos saisies non enregistrées seront perdues.'))return;try{await api('/api/logout',{method:'POST',body:'{}'});showLogin();}catch(error){toast(error.message,true);}});
-try{await load();}catch(error){showLogin();if(!/Connectez-vous|session/.test(error.message)){ $('#login-error').textContent='Le Studio ne peut pas se reconnecter pour le moment. Vous pouvez réessayer de vous connecter.';$('#login-error').hidden=false; }}
+$('#logout').addEventListener('click',async()=>{if((state.drafts.size||workspace.hasUnsaved())&&!await confirmDialog('¿Salir del Studio?','Se perderán tus cambios sin guardar.'))return;try{await api('/api/logout',{method:'POST',body:'{}'});showLogin();}catch(error){toast(error.message,true);}});
+try{await load();}catch(error){showLogin();if(!/Inicia sesión|sesión/.test(error.message)){ $('#login-error').textContent='El Studio no puede reconectarse por ahora. Puedes intentar iniciar sesión de nuevo.';$('#login-error').hidden=false; }}

@@ -6,6 +6,8 @@ L'adresse `https://www.eonovastudios.com/admin/` ouvre ce Studio. La navigation,
 
 ## Utilisation
 
+L’interface du Studio est en espagnol pour le Mexique (`es-MX`) : connexion, navigation, formulaires, confirmations et erreurs propres au Studio. Les dates et le calendrier utilisent ce format ; le fuseau horaire reste celui du navigateur. Le choix Español / Inglés / Francés dans l’éditeur concerne uniquement les contenus du site et ne change pas la langue de l’administration.
+
 Se connecter avec les identifiants EON existants. Le mot de passe initial se trouve dans Railway → `eon-nova-cms` → `production` → `directus` → `ADMIN_PASSWORD`, sauf si le propriétaire l'a changé depuis.
 
 Le menu suit le site : **Vue d'ensemble, Accueil, Motion Lab, Le studio, Services & contact, Pied de page, Langues & interface, Images du site**. Les compteurs proviennent des contenus réels. Les liens « Voir la rubrique » ouvrent la bonne langue et la bonne ancre du site.
