@@ -1,3 +1,4 @@
+import {createWorkspaceUI,workspaceSections} from './workspace-ui.js';
 const $ = selector => document.querySelector(selector);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const plain = value => String(value ?? '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -25,6 +26,7 @@ const languages = {es:{name:'Español',label:'ES'},en:{name:'English',label:'EN'
 const placementLabels = {hero:'Accueil · grand visuel',studio:'Le studio',graphic:'Design graphique',digital:'Design digital'};
 const statusLabel = {published:'À inclure dans le site',draft:'Brouillon',archived:'Archivé'};
 const state = {texts:[],media:[],drafts:new Map(),route:'overview',lang:'es',filter:'',busy:false,profile:{},publishReady:false,canEdit:false,mediaEdit:null};
+const workspace=createWorkspaceUI({api,toast,confirmDialog,isCurrent:route=>state.route===route});
 let toastTimer, previewBlob;
 function toast(message, error = false) { const node=$('#toast');node.textContent=message;node.classList.toggle('error',error);node.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>node.hidden=true,error?8500:4500); }
 async function api(path, options = {}) {
@@ -33,10 +35,11 @@ async function api(path, options = {}) {
   if(!response.ok){if(response.status===401 && path!=='/api/login')showLogin();throw new Error(result.error || 'Cette action n’a pas abouti.');}
   return result;
 }
-function showLogin(){ $('#login-view').hidden=false;$('#studio-view').hidden=true;state.drafts.clear();state.profile={};state.texts=[];state.media=[];$('#password').value=''; }
+function showLogin(){ $('#login-view').hidden=false;$('#studio-view').hidden=true;state.drafts.clear();workspace.reset();state.profile={};state.texts=[];state.media=[];$('#password').value=''; }
 function nav(){
   const links=[{id:'overview',name:'Vue d’ensemble',icon:'home'},...sections.map(s=>({...s,icon:s.id})),{id:'media',name:'Images du site',icon:'media'}];
   $('#main-nav').innerHTML=links.map(s=>`${s.id==='media'?'<div class="nav-separator"></div>':''}<a class="nav-item ${state.route===s.id?'active':''}" href="#${s.id}" ${state.route===s.id?'aria-current="page"':''}>${icon(s.icon)}<span>${s.name}</span>${s.id==='overview'?'':`<small class="nav-count">${s.id==='media'?state.media.filter(row=>row.status==='published').length:state.texts.filter(row=>row.section===s.id).length}</small>`}</a>`).join('');
+  $('#main-nav').insertAdjacentHTML('beforeend','<div class="nav-separator"></div><div class="nav-heading suite-nav-heading">FAIRE VIVRE LE STUDIO</div>'+workspaceSections.map(s=>`<a class="nav-item ${state.route===s.id?'active':''}" href="#${s.id}" ${state.route===s.id?'aria-current="page"':''}><span class="nav-glyph" aria-hidden="true">${s.glyph}</span><span>${s.name}</span></a>`).join(''));
 }
 function pageHeading(eyebrow,title,description,actions=''){
   return `<div class="page-heading"><div><span class="eyebrow">${eyebrow}</span><h1>${title}</h1><p>${description}</p></div>${actions?`<div class="heading-actions">${actions}</div>`:''}</div>`;
@@ -51,7 +54,7 @@ function overview(){
     `<div class="stats-grid">${[[published,'01 / TEXTES ACTIFS','Les mots de votre univers'],[state.media.filter(row=>row.status==='published').length,'02 / IMAGES DU SITE','Vos visuels personnalisés'],[3,'03 / LANGUES','Español · English · Français'],[drafts,'04 / BROUILLONS','Les idées en préparation']].map(([value,label,detail])=>`<article class="stat-card"><span class="stat-label">${label}</span><div class="stat-value">${value}</div><p class="stat-detail">${detail}</p></article>`).join('')}</div>`+
     `${state.drafts.size?`<div class="editor-intro">${icon('info')}<span>${state.drafts.size} texte(s) modifié(s) attendent d’être enregistrés. Vos saisies restent disponibles dans leurs rubriques.</span></div>`:''}`+
     `<div class="section-title"><h2>Votre site, rubrique par rubrique.</h2><span>06 ESPACES À EXPLORER</span></div><div class="section-grid">${sections.map(s=>`<a class="section-card" href="#${s.id}"><div class="section-art art-${s.id}"><span class="art-number">${s.number} / EON NOVA</span><span class="art-word">${s.word}</span></div><div class="section-card-copy"><div class="section-card-top"><h3>${s.name}</h3><span>↗</span></div><p>${s.description}</p><div class="card-meta"><span>${state.texts.filter(row=>row.section===s.id).length} textes</span><i class="dot"></i><span>3 langues</span><i class="dot"></i><span>Modifier ↗</span></div></div></a>`).join('')}</div>`+
-    `<div class="quick-links"><div><strong>Une image peut tout changer.</strong><p>Personnalisez les visuels de votre site, à votre façon.</p></div><a href="#media"><strong>Ouvrir la médiathèque</strong><span>↗</span></a></div>`;
+    `<div class="quick-links"><div><strong>Une image peut tout changer.</strong><p>Personnalisez les visuels de votre site, à votre façon.</p></div><a href="#media"><strong>Ouvrir la médiathèque</strong><span>↗</span></a></div><div class="section-title suite-section-title"><h2>Votre Studio va plus loin.</h2></div><div class="suite-launch-grid">${workspaceSections.map(s=>`<a href="#${s.id}" class="suite-launch"><span>${s.glyph}</span><strong>${s.name}</strong><small>Ouvrir l’espace ↗</small></a>`).join('')}</div>`;
 }
 function currentRows(){return state.texts.filter(row=>row.section===state.route);}
 function values(row){return {...row,...state.drafts.get(row.id)};}
@@ -77,7 +80,8 @@ function mediaPage(){return pageHeading('VOTRE UNIVERS VISUEL','Les images donne
   }).join('')}</div>`;
 }
 function render(){
-  nav();$('#breadcrumb').textContent=state.route==='overview'?'Vue d’ensemble':state.route==='media'?'Images du site':sections.find(s=>s.id===state.route).name;
+  nav();$('#breadcrumb').textContent=state.route==='overview'?'Vue d’ensemble':state.route==='media'?'Images du site':(sections.find(s=>s.id===state.route)||workspaceSections.find(s=>s.id===state.route)).name;
+  if(workspaceSections.some(s=>s.id===state.route)){workspace.open(state.route);return;}
   $('#content').innerHTML=state.route==='overview'?overview():state.route==='media'?mediaPage():editor();
   $('#content').querySelectorAll('[data-publish]').forEach(button=>button.addEventListener('click',publish));
   $('#content').querySelectorAll('[data-language]').forEach(button=>button.addEventListener('click',()=>{state.lang=button.dataset.language;render();}));
@@ -123,7 +127,7 @@ async function load(){
   $('#login-view').hidden=true;$('#studio-view').hidden=false;route();
 }
 function route(){
-  const hash=location.hash.slice(1),allowed=['overview','media',...sections.map(s=>s.id)];state.route=allowed.includes(hash)?hash:'overview';state.filter='';closeMenu();render();
+  const hash=location.hash.slice(1),allowed=['overview','media',...sections.map(s=>s.id),...workspaceSections.map(s=>s.id)];state.route=allowed.includes(hash)?hash:'overview';state.filter='';closeMenu();render();
 }
 function openMenu(){ $('#sidebar').classList.add('open');$('#sidebar-shade').hidden=false;$('#menu-toggle').setAttribute('aria-expanded','true'); }
 function closeMenu(){ $('#sidebar').classList.remove('open');$('#sidebar-shade').hidden=true;$('#menu-toggle').setAttribute('aria-expanded','false'); }
@@ -180,12 +184,12 @@ $('#menu-toggle').addEventListener('click',()=>$('#sidebar').classList.contains(
 $('#main-nav').addEventListener('click',event=>{if(event.target.closest('a'))closeMenu();});
 window.addEventListener('keydown',event=>{if(event.key==='Escape')closeMenu();});
 window.addEventListener('hashchange',()=>{if(!$('#studio-view').hidden)route();});
-window.addEventListener('beforeunload',event=>{if(state.drafts.size){event.preventDefault();event.returnValue='';}});
+window.addEventListener('beforeunload',event=>{if(state.drafts.size||workspace.hasUnsaved()){event.preventDefault();event.returnValue='';}});
 $('#show-password').addEventListener('click',()=>{const password=$('#password'),visible=password.type==='password';password.type=visible?'text':'password';$('#show-password').textContent=visible?'Masquer':'Voir';$('#show-password').setAttribute('aria-label',visible?'Masquer le mot de passe':'Afficher le mot de passe');});
 $('#login-form').addEventListener('submit',async event=>{
   event.preventDefault();const button=event.target.querySelector('[type="submit"]');button.disabled=true;button.textContent='Ouverture de votre Studio…';$('#login-error').hidden=true;
   try{await api('/api/login',{method:'POST',body:JSON.stringify({email:$('#email').value.trim(),password:$('#password').value})});$('#password').value='';await load();}
   catch(error){$('#login-error').textContent=error.message;$('#login-error').hidden=false;}finally{button.disabled=false;button.innerHTML='Entrer dans mon Studio <span>↗</span>';}
 });
-$('#logout').addEventListener('click',async()=>{if(state.drafts.size&&!await confirmDialog('Quitter le Studio ?','Vos saisies non enregistrées seront perdues.'))return;try{await api('/api/logout',{method:'POST',body:'{}'});showLogin();}catch(error){toast(error.message,true);}});
+$('#logout').addEventListener('click',async()=>{if((state.drafts.size||workspace.hasUnsaved())&&!await confirmDialog('Quitter le Studio ?','Vos saisies non enregistrées seront perdues.'))return;try{await api('/api/logout',{method:'POST',body:'{}'});showLogin();}catch(error){toast(error.message,true);}});
 try{await load();}catch(error){showLogin();if(!/Connectez-vous|session/.test(error.message)){ $('#login-error').textContent='Le Studio ne peut pas se reconnecter pour le moment. Vous pouvez réessayer de vous connecter.';$('#login-error').hidden=false; }}

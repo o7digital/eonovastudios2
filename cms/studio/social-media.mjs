@@ -1,0 +1,75 @@
+import {createHmac,createHash,timingSafeEqual,randomBytes} from 'node:crypto';
+import {Readable} from 'node:stream';
+
+export class SocialMediaError extends Error {constructor(status,message){super(message);this.status=status;}}
+export const SOCIAL_MEDIA_FOLDER='3a12a115-3d6a-431b-a9fc-ab0d5929367f';
+const uuid=/^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i;
+const types={'image/jpeg':'.jpg','image/png':'.png','image/webp':'.webp','video/mp4':'.mp4'};
+export function mediaFingerprint(file){return createHash('sha256').update(JSON.stringify([file.id,file.type,String(file.filesize),file.modified_on||file.uploaded_on])).digest('base64url');}
+export function mediaSignature(secret,id,nbf,exp,version){return createHmac('sha256',secret).update(`o7:social-media:v1:${id}:${nbf}:${exp}:${version}`).digest('base64url');}
+export function verifyMediaLease(secret,url,now=Date.now()){
+ const id=url.pathname.split('/').at(-1),nbf=url.searchParams.get('nbf'),exp=url.searchParams.get('exp'),version=url.searchParams.get('v'),sig=url.searchParams.get('sig');
+ if(!uuid.test(id||'')||!/^[\d]{10,12}$/.test(nbf||'')||!/^[\d]{10,12}$/.test(exp||'')||!/^[\w-]{43}$/.test(version||'')||!/^[\w-]{43}$/.test(sig||'')||[...url.searchParams.keys()].some(k=>!['nbf','exp','v','sig'].includes(k))||Number(nbf)*1000>now||Number(exp)*1000<now||Number(exp)-Number(nbf)>4*3600)throw new SocialMediaError(403,'Ce lien de média est invalide ou a expiré.');
+ const expected=mediaSignature(secret,id,nbf,exp,version);
+ if(!timingSafeEqual(Buffer.from(expected),Buffer.from(sig)))throw new SocialMediaError(403,'Ce lien de média est invalide.');
+ return {id,version};
+}
+export function createSocialMedia({cms,editorToken,secret,origin,fetcher=fetch}){
+ async function request(path,token,options={}){
+  const response=await fetcher(cms.replace(/\/$/,'')+path,{...options,headers:{...options.headers,Authorization:'Bearer '+token},redirect:'error',signal:AbortSignal.timeout(180000)});
+  if(!response.ok){await response.body?.cancel();throw new SocialMediaError(response.status===403?403:502,'Ce média est indisponible dans le Studio.');}
+  return response;
+ }
+ async function metadata(id,token){
+  if(!uuid.test(id||''))throw new SocialMediaError(400,'Choisissez un média valide.');
+  const data=await(await request('/files/'+id+'?fields=id,type,filesize,modified_on,uploaded_on,title,folder,width,height',token)).json();
+  const file=data.data;
+  if(!file||!types[file.type]||!Number.isSafeInteger(Number(file.filesize))||Number(file.filesize)<=0||Number(file.filesize)>250*1024*1024)throw new SocialMediaError(400,'Utilisez une image ou une vidéo MP4 de 250 Mo maximum.');
+  return file;
+ }
+ async function prepare(id,token,due=Date.now()){
+  let file=await metadata(id,token);
+  if(file.type.startsWith('image/')&&(file.type!=='image/jpeg'||Number(file.filesize)>5*1024*1024||file.folder!==SOCIAL_MEDIA_FOLDER||file.width!==1440||file.height!==1440)){
+   const response=await request('/assets/'+id+'?width=1440&height=1440&fit=contain&format=jpg&quality=82',token);
+   const chunks=[];let size=0;
+   for await(const bytes of response.body){size+=bytes.length;if(size>5*1024*1024){await response.body.cancel().catch(()=>{});throw new SocialMediaError(400,'L’image optimisée dépasse 5 Mo. Choisissez une image plus petite.');}chunks.push(bytes);}
+   const form=new FormData();form.set('title',(file.title||'Photographie')+' · Social');form.set('folder',SOCIAL_MEDIA_FOLDER);form.set('file',new Blob([Buffer.concat(chunks)],{type:'image/jpeg'}),'social.jpg');
+   file=(await(await request('/files',token,{method:'POST',body:form})).json()).data;
+   file=await metadata(file.id,token);
+  }
+  if(file.type!=='image/jpeg'&&file.type!=='video/mp4')throw new SocialMediaError(400,'Ce format ne peut pas être publié.');
+  const nbf=Math.floor((due-5*60000)/1000),exp=Math.floor((due+3*3600000)/1000),version=mediaFingerprint(file),sig=mediaSignature(secret,file.id,nbf,exp,version);
+  const url=new URL('/social-media/'+file.id,origin);for(const[k,v]of Object.entries({nbf,exp,v:version,sig}))url.searchParams.set(k,String(v));
+  return {id:file.id,type:file.type.startsWith('video/')?'video':'image',mime:file.type,size:Number(file.filesize),url:url.href};
+ }
+ async function upload(req,token){
+  const mime=String(req.headers['content-type']||'').split(';')[0],size=Number(req.headers['content-length']);
+  const max=mime==='video/mp4'?250*1024*1024:25*1024*1024;
+  if(!types[mime]||!Number.isSafeInteger(size)||size<=0||size>max)throw new SocialMediaError(400,'Ajoutez une image de 25 Mo maximum ou une vidéo MP4 de 250 Mo maximum.');
+  const iterator=req[Symbol.asyncIterator](),first=await iterator.next();
+  if(first.done)throw new SocialMediaError(400,'Le fichier est vide.');
+  let head=first.value;
+  while(head.length<32){const more=await iterator.next();if(more.done)break;head=Buffer.concat([head,more.value]);}
+  const valid=mime==='image/jpeg'?head[0]===255&&head[1]===216&&head[2]===255:mime==='image/png'?head.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])):mime==='image/webp'?head.toString('ascii',0,4)==='RIFF'&&head.toString('ascii',8,12)==='WEBP':head.toString('ascii',4,8)==='ftyp';
+  if(!valid)throw new SocialMediaError(400,'Le contenu du fichier ne correspond pas à son format.');
+  const boundary='o7-'+randomBytes(20).toString('hex'),prefix=Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="folder"\r\n\r\n${SOCIAL_MEDIA_FOLDER}\r\n--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="social${types[mime]}"\r\nContent-Type: ${mime}\r\n\r\n`),suffix=Buffer.from(`\r\n--${boundary}--\r\n`);
+  async function* bytes(){
+   let count=head.length;if(count>size)throw new SocialMediaError(413,'Le fichier dépasse sa taille annoncée.');yield prefix;yield head;
+   for(;;){const part=await iterator.next();if(part.done)break;count+=part.value.length;if(count>size||count>max)throw new SocialMediaError(413,'Le fichier dépasse la taille autorisée.');yield part.value;}
+   if(count!==size)throw new SocialMediaError(400,'Le transfert du fichier est incomplet.');yield suffix;
+  }
+  const response=await request('/files',token,{method:'POST',headers:{'Content-Type':'multipart/form-data; boundary='+boundary,'Content-Length':String(prefix.length+size+suffix.length)},body:Readable.from(bytes()),duplex:'half'});
+  const file=(await response.json()).data;
+  return {...await prepare(file.id,token),originalId:file.id};
+ }
+ async function stream(req,res,id,token,version){
+  const file=await metadata(id,token);
+  if(version&&mediaFingerprint(file)!==version)throw new SocialMediaError(409,'Ce média a changé après l’approbation de la publication.');
+  const headers={};if(req.headers.range){if(!/^bytes=(?:\d+-\d*|-\d+)$/.test(req.headers.range))throw new SocialMediaError(416,'Plage de lecture vidéo invalide.');headers.Range=req.headers.range;}
+  const response=await request('/assets/'+id,token,{method:req.method==='HEAD'?'HEAD':'GET',headers});
+  res.writeHead(response.status,{'Content-Type':file.type,'Cache-Control':'no-store','X-Robots-Tag':'noindex, nofollow','Referrer-Policy':'no-referrer','Accept-Ranges':'bytes',...(response.headers.get('content-length')?{'Content-Length':response.headers.get('content-length')}:{}),...(response.headers.get('content-range')?{'Content-Range':response.headers.get('content-range')}:{}),'Content-Disposition':'inline'});
+  if(req.method==='HEAD'){res.end();return;}
+  const source=Readable.fromWeb(response.body);res.on('close',()=>source.destroy());source.on('error',()=>res.destroy());source.pipe(res);
+ }
+ return {prepare,upload,privateStream:(req,res,id,token)=>stream(req,res,id,token),publicStream:(req,res,url)=>{const{id,version}=verifyMediaLease(secret,url);return stream(req,res,id,editorToken,version);}};
+}

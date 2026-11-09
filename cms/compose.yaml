@@ -41,7 +41,7 @@ services:
       STORAGE_LOCATIONS: local
       STORAGE_LOCAL_DRIVER: local
       STORAGE_LOCAL_ROOT: /directus/uploads
-      FILES_MAX_UPLOAD_SIZE: 25mb
+      FILES_MAX_UPLOAD_SIZE: 250mb
       FILES_MAX_UPLOAD_CONCURRENCY: '2'
       ASSETS_TRANSFORM_MAX_CONCURRENT: '1'
       WEBSOCKETS_ENABLED: 'true'
@@ -70,6 +70,12 @@ services:
       STUDIO_ORIGIN: ${STUDIO_ORIGIN:?Set the HTTPS Studio URL}
       STUDIO_SESSION_SECRET: ${STUDIO_SESSION_SECRET:?Preserve the Studio session secret}
       STUDIO_PUBLISH_ENABLED: 'false'
+      ARM_API_URL: https://api.crm.o7digitalgroup.com/api
+      ARM_TENANT_ID: 229dd065-2d9c-40fd-81e0-04e2ea009412
+      STUDIO_OWNER_EMAIL: ${STUDIO_OWNER_EMAIL:?Set the Directus owner email}
+      ARM_SERVICE_EMAIL: ${ARM_SERVICE_EMAIL:?Preserve the EON connector email}
+      ARM_SERVICE_PASSWORD: ${ARM_SERVICE_PASSWORD:?Preserve the EON connector password}
+      STUDIO_MEDIA_READ_TOKEN: ${STUDIO_MEDIA_READ_TOKEN:?Preserve the private media reader}
     healthcheck:
       test: [CMD, node, -e, "fetch('http://127.0.0.1:4381/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s

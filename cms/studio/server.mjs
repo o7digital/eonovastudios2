@@ -2,6 +2,8 @@ import http from 'node:http';
 import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import {createWorkspace,WorkspaceError} from './workspace.mjs';
+import {createSocialMedia,SocialMediaError} from './social-media.mjs';
 
 const uuid = /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i;
 const locales = ['es', 'en', 'fr'];
@@ -21,6 +23,12 @@ export function createStudioServer(options = {}) {
     website: 'https://www.eonovastudios.com',
     secure: process.env.NODE_ENV === 'production',
     fetcher: fetch,
+    crm: process.env.ARM_API_URL || 'https://api.crm.o7digitalgroup.com/api',
+    tenant: process.env.ARM_TENANT_ID,
+    serviceEmail: process.env.ARM_SERVICE_EMAIL,
+    servicePassword: process.env.ARM_SERVICE_PASSWORD,
+    ownerEmail: process.env.STUDIO_OWNER_EMAIL,
+    mediaReadToken: process.env.STUDIO_MEDIA_READ_TOKEN,
     ...options,
   };
   if (!config.cms || !config.origin || !config.secret || config.secret.length < 32) throw new Error('Configure DIRECTUS_URL, STUDIO_ORIGIN and STUDIO_SESSION_SECRET (32+ characters).');
@@ -74,6 +82,8 @@ export function createStudioServer(options = {}) {
     }
     return s;
   }
+  const socialMedia=createSocialMedia({cms:config.cms,editorToken:config.mediaReadToken,secret:config.secret,origin:config.origin,fetcher:config.fetcher});
+  const workspace=createWorkspace({cms,crm:config.crm,tenant:config.tenant,serviceEmail:config.serviceEmail,servicePassword:config.servicePassword,ownerEmail:config.ownerEmail,origin:config.origin,fetcher:config.fetcher,socialMedia});
   async function body(req, limit = 262144) {
     if (Number(req.headers['content-length']) > limit) throw new ApiError(413, 'Ce fichier est trop lourd (25 Mo maximum).');
     let size = 0; const chunks = [];
@@ -94,9 +104,13 @@ export function createStudioServer(options = {}) {
   async function serve(req, res) {
     const url = new URL(req.url, 'http://studio.local'), path = url.pathname;
     res.setHeader('X-Content-Type-Options', 'nosniff'); res.setHeader('Referrer-Policy', 'same-origin'); res.setHeader('X-Frame-Options', 'DENY');
-    res.setHeader('Content-Security-Policy', "default-src 'self'; img-src 'self' blob: data:; style-src 'self'; font-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
+    res.setHeader('Content-Security-Policy', "default-src 'self'; img-src 'self' blob: data: https:; media-src 'self' blob:; frame-src 'self'; style-src 'self'; font-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
     res.setHeader('X-Robots-Tag', 'noindex, nofollow');
     if (path === '/health' && req.method === 'GET') return send(res, { ok: true });
+    if(/^\/social-media\/[a-f\d-]{36}$/.test(path)&&['GET','HEAD'].includes(req.method)){
+      if(!config.mediaReadToken)throw new ApiError(503,'Le lecteur de médias n’est pas configuré.');
+      return socialMedia.publicStream(req,res,url);
+    }
     if (path.startsWith('/api/')) {
       if (!['GET', 'POST', 'PATCH'].includes(req.method)) throw new ApiError(405, 'Méthode non autorisée.');
       if (req.method !== 'GET' && req.headers.origin !== config.origin) throw new ApiError(403, 'Cette demande ne provient pas de votre Studio.');
@@ -119,6 +133,7 @@ export function createStudioServer(options = {}) {
         setSession(res, null); return send(res, { ok: true });
       }
       const s = await authenticated(req, res);
+      if(await workspace.handle({path,url,req,res,s,jsonBody,send,body}))return;
       if (path === '/api/bootstrap' && req.method === 'GET') {
         const [profile, texts, media, rights] = await Promise.all([
           cms('/users/me?fields=id,email,first_name,last_name', s.access),
@@ -128,7 +143,7 @@ export function createStudioServer(options = {}) {
         ]);
         const permission = rights?.site_texts?.update;
         return send(res, { profile: { email: profile.email, name: [profile.first_name, profile.last_name].filter(Boolean).join(' ') }, texts, media,
-          website: config.website, publishReady: config.publishEnabled && Boolean(config.publishSecret), canEdit: permission?.access === 'full' || permission?.access === 'partial' || permission?.access === true });
+          website: config.website, workspaceReady:workspace.ready(), publishReady: config.publishEnabled && Boolean(config.publishSecret), canEdit: permission?.access === 'full' || permission?.access === 'partial' || permission?.access === true });
       }
       const textId = path.match(/^\/api\/texts\/([a-f\d-]{36})$/i)?.[1];
       if (path === '/api/texts' && req.method === 'PATCH') {
@@ -195,7 +210,8 @@ export function createStudioServer(options = {}) {
       throw new ApiError(404, 'Cette action n’existe pas.');
     }
     if (req.method !== 'GET' && req.method !== 'HEAD') throw new ApiError(405, 'Méthode non autorisée.');
-    const files = { '/': ['index.html', 'text/html; charset=utf-8'], '/app.js': ['app.js', 'text/javascript; charset=utf-8'], '/style.css': ['style.css', 'text/css; charset=utf-8'], '/favicon.svg': ['favicon.svg', 'image/svg+xml'], '/dm-sans.woff2': ['dm-sans.woff2', 'font/woff2'], '/space-grotesk.woff2': ['space-grotesk.woff2', 'font/woff2'] };
+    const files = { '/': ['index.html', 'text/html; charset=utf-8'], '/app.js': ['app.js', 'text/javascript; charset=utf-8'], '/workspace-ui.js':['workspace-ui.js','text/javascript; charset=utf-8'], '/social-callback.html':['social-callback.html','text/html; charset=utf-8'], '/social-callback.js':['social-callback.js','text/javascript; charset=utf-8'], '/style.css': ['style.css', 'text/css; charset=utf-8'], '/favicon.svg': ['favicon.svg', 'image/svg+xml'], '/dm-sans.woff2': ['dm-sans.woff2', 'font/woff2'], '/space-grotesk.woff2': ['space-grotesk.woff2', 'font/woff2'] };
+    if(path==='/social-callback.html')res.setHeader('Referrer-Policy','no-referrer');
     if (!files[path]) throw new ApiError(404, 'Page introuvable.');
     const [file, mime] = files[path];
     res.writeHead(200, { 'Content-Type': mime, 'Cache-Control': path === '/' ? 'no-store' : 'public, max-age=3600' });
@@ -203,9 +219,10 @@ export function createStudioServer(options = {}) {
   }
   return http.createServer((req, res) => serve(req, res).catch(error => {
     if (res.headersSent) { res.end(); return; }
-    const status = error instanceof ApiError ? error.status : 500;
+    const known=error instanceof ApiError||error instanceof WorkspaceError||error instanceof SocialMediaError;
+    const status = known ? error.status : 500;
     if (status === 401) setSession(res, null);
-    send(res, { error: error instanceof ApiError ? error.message : 'Le Studio n’a pas pu terminer cette action. Réessayez.' }, status);
+    send(res, { error: known ? error.message : 'Le Studio n’a pas pu terminer cette action. Réessayez.' }, status);
   }));
 }
 

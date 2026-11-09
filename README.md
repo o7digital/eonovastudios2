@@ -13,6 +13,8 @@ Les composants sont dans `src/components`, les animations Canvas dans `src/scrip
 
 Administration de contenu : **EON NOVA Studio**, interface sur mesure hébergée sur Railway et reliée à Directus. Connexion, textes en trois langues et médiathèque : [guide du Studio](cms/studio/README.md). Sauvegardes et migration future vers VPS : [guide du CMS](cms/README.md). Le build charge le CMS lorsque `DIRECTUS_URL` et `DIRECTUS_READ_TOKEN` sont configurés ; sans ces variables, il utilise les contenus locaux.
 
+Le Studio inclut aussi un agenda privé avec export ICS, le carnet de contacts EON, les brouillons et calendriers des réseaux sociaux, et l'éditeur de mailings/newsletters avec aperçu et journal. Les communications utilisent l'espace O7 existant d'EON. Les envois exigent la configuration de l'expéditeur ou des comptes sociaux et une confirmation dans l'interface ; aucun envoi n'est déclenché par une simple sauvegarde.
+
 Le build est dans `dist/`. Les aperçus sont `noindex` par défaut. L'indexation est activée par `SITE_INDEXABLE=true`, uniquement après validation du domaine final. Canonical : https://eonovastudios.com/. Aucun changement DNS ou courrier n'est nécessaire.
 
 Ne pas relier le domaine avant validation de l'aperçu. Hébergement : projet Vercel `eon2`, aperçu indépendant du site historique. Configuration dans `vercel.json`.

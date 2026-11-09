@@ -11,5 +11,10 @@
   "website": "https://www.eonovastudios.com",
   "websiteBranch": "dev",
   "studioServiceId": "32fdb14d-75a7-47a6-958e-5dd0727d552f",
-  "studioUrl": "https://studio-production-3757.up.railway.app"
+  "studioUrl": "https://studio-production-3757.up.railway.app",
+  "workspace": {
+    "api": "https://api.crm.o7digitalgroup.com/api",
+    "tenantId": "229dd065-2d9c-40fd-81e0-04e2ea009412",
+    "subscriptionId": "3ce2e29b-7ea7-4324-af19-aeb1d83fc077"
+  }
 }
