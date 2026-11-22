@@ -443,9 +443,9 @@
     "en": "Write to us with a brief description of your project, your timeline and what you would like to achieve.",
     "fr": "Écrivez-nous en décrivant votre projet, votre calendrier et ce que vous souhaitez accomplir."
   },
-  "Explorar mi idea con Olivia": {
-    "en": "Explore my idea with Olivia",
-    "fr": "Explorer mon idée avec Olivia"
+  "Explorar mi idea con EON IA": {
+    "en": "Explore my idea with EON IA",
+    "fr": "Explorer mon idée avec EON IA"
   },
   "Aviso de privacidad": {
     "en": "Privacy notice",
@@ -483,17 +483,17 @@
     "en": "I have an idea ↗",
     "fr": "J’ai une idée ↗"
   },
-  "Acepto que mis mensajes sean tratados para recibir asistencia de Olivia IA. No incluyas datos sensibles.": {
-    "en": "I consent to my messages being processed to receive assistance from Olivia AI. Do not include sensitive data.",
-    "fr": "J’accepte le traitement de mes messages pour recevoir l’aide d’Olivia IA. N’incluez pas de données sensibles."
+  "Acepto que mis mensajes sean tratados para recibir asistencia de EON IA. No incluyas datos sensibles.": {
+    "en": "I consent to my messages being processed to receive assistance from EON IA. Do not include sensitive data.",
+    "fr": "J’accepte le traitement de mes messages pour recevoir l’aide d’EON IA. N’incluez pas de données sensibles."
   },
   "Sobre esta conversación": {
     "en": "About this conversation",
     "fr": "À propos de cette conversation"
   },
-  "Al enviar un mensaje, su contenido se transmite al servicio Olivia IA de o7Digital y a su proveedor de inteligencia artificial para responder a tu consulta sobre EON NOVA STUDIOS. El servicio guarda el intercambio y su contexto. No compartas información confidencial ni datos de terceros. Puedes desmarcar la casilla para dejar de enviar mensajes; esto no elimina los ya enviados.": {
-    "en": "When you send a message, its content is sent to the o7Digital Olivia AI service and its AI provider to answer your enquiry about EON NOVA STUDIOS. The service stores the conversation and its context. Do not share confidential information or other people’s data. Uncheck the box to stop sending messages; this does not delete messages already sent.",
-    "fr": "Lorsque vous envoyez un message, son contenu est transmis au service Olivia IA d’o7Digital et à son fournisseur d’intelligence artificielle pour répondre à votre demande sur EON NOVA STUDIOS. Le service conserve l’échange et son contexte. Ne partagez pas d’informations confidentielles ni de données de tiers. Décochez la case pour arrêter l’envoi de messages ; cela ne supprime pas les messages déjà envoyés."
+  "Al enviar un mensaje, su contenido se transmite al servicio EON IA de o7Digital y a su proveedor de inteligencia artificial para responder a tu consulta sobre EON NOVA STUDIOS. El servicio guarda el intercambio y su contexto. No compartas información confidencial ni datos de terceros. Puedes desmarcar la casilla para dejar de enviar mensajes; esto no elimina los ya enviados.": {
+    "en": "When you send a message, its content is sent to the o7Digital EON IA service and its AI provider to answer your enquiry about EON NOVA STUDIOS. The service stores the conversation and its context. Do not share confidential information or other people’s data. Uncheck the box to stop sending messages; this does not delete messages already sent.",
+    "fr": "Lorsque vous envoyez un message, son contenu est transmis au service EON IA d’o7Digital et à son fournisseur d’intelligence artificielle pour répondre à votre demande sur EON NOVA STUDIOS. Le service conserve l’échange et son contexte. Ne partagez pas d’informations confidentielles ni de données de tiers. Décochez la case pour arrêter l’envoi de messages ; cela ne supprime pas les messages déjà envoyés."
   },
   "Tu mensaje": {
     "en": "Your message",
@@ -507,33 +507,33 @@
     "en": "Send message",
     "fr": "Envoyer le message"
   },
-  "Olivia IA · Las respuestas pueden contener errores.": {
-    "en": "Olivia AI · Answers may contain errors.",
-    "fr": "Olivia IA · Les réponses peuvent contenir des erreurs."
+  "EON IA · Las respuestas pueden contener errores.": {
+    "en": "EON IA · Answers may contain errors.",
+    "fr": "EON IA · Les réponses peuvent contenir des erreurs."
   },
-  "Abrir Olivia IA": {
-    "en": "Open Olivia AI",
-    "fr": "Ouvrir Olivia IA"
+  "Abrir EON IA": {
+    "en": "Open EON IA",
+    "fr": "Ouvrir EON IA"
   },
   "Hablemos de tu idea": {
     "en": "Let’s talk about your idea",
     "fr": "Parlons de votre idée"
   },
-  "Hola, soy Olivia, tu asistente de EON NOVA STUDIOS. Diseño digital, animación e historias en movimiento. ¿Qué te gustaría explorar?": {
-    "en": "Hi, I’m Olivia, your EON NOVA STUDIOS assistant. Digital design, animation and stories in motion. What would you like to explore?",
-    "fr": "Bonjour, je suis Olivia, votre assistante EON NOVA STUDIOS. Design digital, animation et histoires en mouvement. Que souhaitez-vous explorer ?"
+  "Hola, soy EON IA, tu asistente de EON NOVA STUDIOS. Diseño digital, animación e historias en movimiento. ¿Qué te gustaría explorar?": {
+    "en": "Hi, I’m EON IA, your EON NOVA STUDIOS assistant. Digital design, animation and stories in motion. What would you like to explore?",
+    "fr": "Bonjour, je suis EON IA, votre assistante EON NOVA STUDIOS. Design digital, animation et histoires en mouvement. Que souhaitez-vous explorer ?"
   },
-  "Olivia está pensando…": {
-    "en": "Olivia is thinking…",
-    "fr": "Olivia réfléchit…"
+  "EON IA está pensando…": {
+    "en": "EON IA is thinking…",
+    "fr": "EON IA réfléchit…"
   },
   "Demasiados mensajes. Espera un minuto e inténtalo de nuevo.": {
     "en": "Too many messages. Wait a minute and try again.",
     "fr": "Trop de messages. Patientez une minute puis réessayez."
   },
-  "Olivia no está disponible en este momento. No se pudo recuperar la respuesta. Inténtalo de nuevo en unos instantes.": {
-    "en": "Olivia is currently unavailable. The response could not be retrieved. Please try again shortly.",
-    "fr": "Olivia est indisponible pour le moment. La réponse n’a pas pu être récupérée. Réessayez dans quelques instants."
+  "EON IA no está disponible en este momento. No se pudo recuperar la respuesta. Inténtalo de nuevo en unos instantes.": {
+    "en": "EON IA is currently unavailable. The response could not be retrieved. Please try again shortly.",
+    "fr": "EON IA est indisponible pour le moment. La réponse n’a pas pu être récupérée. Réessayez dans quelques instants."
   },
   "DISEÑO / 2D / 3D / FILM": {
     "en": "DESIGN / 2D / 3D / FILM",
@@ -547,8 +547,8 @@
     "en": "2D / 3D animation",
     "fr": "Animation 2D / 3D"
   },
-  "Olivia IA": {
-    "en": "Olivia AI",
-    "fr": "Olivia IA"
+  "EON IA": {
+    "en": "EON IA",
+    "fr": "EON IA"
   }
 }

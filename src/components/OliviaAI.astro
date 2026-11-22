@@ -40,7 +40,7 @@ const {lang = 'es'} = Astro.props;
 .toggle-label{position:absolute;right:76px;white-space:nowrap;background:#fffdf8;color:#2b2b2b;border:1px solid #ded7c9;border-radius:20px;padding:7px 12px;font-size:12px;box-shadow:0 6px 20px #0002}.privacy{margin:0 16px 10px;font-size:11px;color:#5f5546}.privacy summary{cursor:pointer;text-decoration:underline;text-underline-offset:3px}.privacy p{margin:8px 0;max-height:95px;overflow:auto}.version{color:#b8f49b;font-size:10px;margin-left:5px}textarea:focus-visible,summary:focus-visible{outline:2px solid #9aee68;outline-offset:3px}
 </style>
 <section class="panel" id="olivia-panel" role="dialog" aria-labelledby="olivia-title" hidden>
-<header><span class="avatar" aria-hidden="true">✧</span><div><h2 id="olivia-title">Olivia IA <span class="version">3.5</span></h2><p class="brand">EON NOVA STUDIOS</p><span class="status"><span class="dot" aria-hidden="true"></span>Tu asistente creativo</span></div><button class="close" aria-label="Cerrar el chat" type="button">×</button></header>
+<header><span class="avatar" aria-hidden="true">✧</span><div><h2 id="olivia-title">EON IA <span class="version">3.5</span></h2><p class="brand">EON NOVA STUDIOS</p><span class="status"><span class="dot" aria-hidden="true"></span>Tu asistente creativo</span></div><button class="close" aria-label="Cerrar el chat" type="button">×</button></header>
 <div class="messages" role="log" aria-live="polite" aria-relevant="additions text"></div>
 <div class="actions">
 <button type="button" data-prompt="¿Qué servicios ofrece EON NOVA STUDIOS?">Diseño digital</button>
@@ -48,13 +48,13 @@ const {lang = 'es'} = Astro.props;
 <button type="button" data-prompt="¿Qué series animadas y cortometrajes están en desarrollo?">Historias & series</button>
 <button type="button" data-prompt="Tengo una idea para un proyecto creativo. ¿Por dónde empezamos?">Tengo una idea ↗</button>
 </div>
-<div class="consent"><label><input type="checkbox" /><span>Acepto que mis mensajes sean tratados para recibir asistencia de Olivia IA. No incluyas datos sensibles.</span></label></div>
-<details class="privacy"><summary>Sobre esta conversación</summary><p>Al enviar un mensaje, su contenido se transmite al servicio Olivia IA de o7Digital y a su proveedor de inteligencia artificial para responder a tu consulta sobre EON NOVA STUDIOS. El servicio guarda el intercambio y su contexto. No compartas información confidencial ni datos de terceros. Puedes desmarcar la casilla para dejar de enviar mensajes; esto no elimina los ya enviados.</p><a href={privacy(lang)}>Aviso de privacidad ↗</a></details>
+<div class="consent"><label><input type="checkbox" /><span>Acepto que mis mensajes sean tratados para recibir asistencia de EON IA. No incluyas datos sensibles.</span></label></div>
+<details class="privacy"><summary>Sobre esta conversación</summary><p>Al enviar un mensaje, su contenido se transmite al servicio EON IA de o7Digital y a su proveedor de inteligencia artificial para responder a tu consulta sobre EON NOVA STUDIOS. El servicio guarda el intercambio y su contexto. No compartas información confidencial ni datos de terceros. Puedes desmarcar la casilla para dejar de enviar mensajes; esto no elimina los ya enviados.</p><a href={privacy(lang)}>Aviso de privacidad ↗</a></details>
 <p class="error" role="alert" hidden></p>
 <form><input type="text" aria-label="Tu mensaje" placeholder="Dale forma a tu idea…" maxlength="2000" autocomplete="off" disabled /><button class="send" type="submit" aria-label="Enviar mensaje" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button></form>
-<div class="footnote">Olivia IA · Las respuestas pueden contener errores.</div>
+<div class="footnote">EON IA · Las respuestas pueden contener errores.</div>
 </section>
-<button class="toggle" type="button" aria-label="Abrir Olivia IA" aria-controls="olivia-panel" aria-expanded="false"><span class="toggle-label">Hablemos de tu idea</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z"/></svg></button>
+<button class="toggle" type="button" aria-label="Abrir EON IA" aria-controls="olivia-panel" aria-expanded="false"><span class="toggle-label">Hablemos de tu idea</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z"/></svg></button>
 </template>
 </eon-olivia>
 <script>
@@ -75,7 +75,7 @@ class EonOlivia extends HTMLElement {
   const sendButton=root.querySelector<HTMLButtonElement>('.send')!;
   let busy=false;let conversation:string|undefined;
   const addMessage=(text:string,user=false)=>{const p=document.createElement('p');p.className=user?'message user':'message';p.textContent=text;messages.append(p);messages.scrollTop=messages.scrollHeight;return p;};
-  addMessage(t("Hola, soy Olivia, tu asistente de EON NOVA STUDIOS. Diseño digital, animación e historias en movimiento. ¿Qué te gustaría explorar?"));
+  addMessage(t("Hola, soy EON IA, tu asistente de EON NOVA STUDIOS. Diseño digital, animación e historias en movimiento. ¿Qué te gustaría explorar?"));
   const update=()=>{input.disabled=!consent.checked||busy;sendButton.disabled=input.disabled;actions.forEach(b=>{b.disabled=input.disabled;});};
   const close=()=>{panel.hidden=true;toggle.setAttribute('aria-expanded','false');toggle.querySelector<HTMLElement>('.toggle-label')!.hidden=false;toggle.focus();};
   toggle.addEventListener('click',()=>{if(!panel.hidden)return close();panel.hidden=false;toggle.setAttribute('aria-expanded','true');toggle.querySelector<HTMLElement>('.toggle-label')!.hidden=true;(consent.checked?input:consent).focus();});
@@ -85,13 +85,13 @@ class EonOlivia extends HTMLElement {
   const send=async(text:string)=>{
    if(!consent.checked||busy||!text.trim())return;
    text=text.trim();busy=true;update();error.hidden=true;addMessage(text,true);input.value='';
-   const pending=addMessage(t("Olivia está pensando…"));messages.setAttribute('aria-busy','true');
+   const pending=addMessage(t("EON IA está pensando…"));messages.setAttribute('aria-busy','true');
    try{
     const response=await fetch('/api/olivia',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,language:document.documentElement.lang,conversation,consent:true}),signal:AbortSignal.timeout(60000)});
     if(!response.ok)throw new Error(String(response.status));
     const data=await response.json();if(typeof data.answer!=='string'||typeof data.conversation!=='string')throw new Error('Invalid response');
     pending.textContent=data.answer;conversation=data.conversation;
-   }catch(err){pending.remove();input.value=text;error.textContent=(err as Error).message==='429'?t("Demasiados mensajes. Espera un minuto e inténtalo de nuevo."):t("Olivia no está disponible en este momento. No se pudo recuperar la respuesta. Inténtalo de nuevo en unos instantes.");error.hidden=false;
+   }catch(err){pending.remove();input.value=text;error.textContent=(err as Error).message==='429'?t("Demasiados mensajes. Espera un minuto e inténtalo de nuevo."):t("EON IA no está disponible en este momento. No se pudo recuperar la respuesta. Inténtalo de nuevo en unos instantes.");error.hidden=false;
    }finally{busy=false;update();messages.removeAttribute('aria-busy');messages.scrollTop=messages.scrollHeight;if(!panel.hidden&&consent.checked)input.focus();}
   };
   root.querySelector('form')!.addEventListener('submit',event=>{event.preventDefault();void send(input.value);});

@@ -29,9 +29,9 @@ const descriptions = {
   fr:'Studio de design graphique, digital et d’animation 2D et 3D. Identité de marque, design web et narration visuelle.',
 };
 const privacyDescriptions = {
-  es:'Información sobre el uso de tus datos, el alojamiento del sitio y las conversaciones con Olivia IA en EON NOVA STUDIOS.',
-  en:'How EON NOVA STUDIOS uses your information, hosts its website and processes conversations with Olivia AI.',
-  fr:'Utilisation de vos données, hébergement du site et traitement des conversations avec Olivia IA chez EON NOVA STUDIOS.',
+  es:'Información sobre el uso de tus datos, el alojamiento del sitio y las conversaciones con EON IA en EON NOVA STUDIOS.',
+  en:'How EON NOVA STUDIOS uses your information, hosts its website and processes conversations with EON IA.',
+  fr:'Utilisation de vos données, hébergement du site et traitement des conversations avec EON IA chez EON NOVA STUDIOS.',
 };
 export function pageSeo({lang='es',legal=false,pageTitle,logo,path:customPath,description:customDescription} = {}) {
   if (!LANGUAGES.includes(lang)) throw new Error('Unsupported SEO language.');
