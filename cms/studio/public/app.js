@@ -1,8 +1,9 @@
-import {visualPageMarkup,mountVisualPage} from './visual-page.js?v=brand-4';
+import {visualPageMarkup,mountVisualPage} from './visual-page.js?v=journal-1';
 import {logoSize,logoImageUrl,prepareLogoPreview} from './logo.js?v=brand-4';
 import {mediaAlt,mediaLabels} from './media-copy.js?v=studio-2';
 import {mountEditors} from './editor.js?v=color-1';
 import {colorToolsMarkup} from './text-color.js?v=color-1';
+import {createSocialLinksUI} from './social-links-ui.js?v=social-links-1';
 import {createJournalUI} from './journal-ui.js?v=journal-1';
 import {journalDefinitions} from './journal-data.js?v=journal-1';
 import {createWorkspaceUI,workspaceSections} from './workspace-ui.js?v=es-mx-1';
@@ -35,6 +36,7 @@ const statusLabel = {published:'Incluir en el sitio',draft:'Borrador',archived:'
 const state = {texts:[],media:[],drafts:new Map(),route:'overview',lang:'es',filter:'',busy:false,profile:{},publishReady:false,canEdit:false,mediaEdit:null,mediaDrafts:new Map(),mediaUploading:false,visualPrefs:{width:1440,mode:'edit'}};
 const workspace=createWorkspaceUI({api,toast,confirmDialog,isCurrent:route=>state.route===route});
 const journalUI=createJournalUI({api,upload:uploadMedia,canEdit:()=>state.canEdit,canPublish:()=>state.publishReady&&!allDirty(),onPublish:publish,isCurrent:route=>state.route===route&&!$('#studio-view').hidden,toast,confirmDialog});
+const socialLinksUI=createSocialLinksUI({api,canEdit:()=>state.canEdit,canPublish:()=>state.publishReady&&!allDirty(),onPublish:publish,isCurrent:()=>state.route==='social-links'&&!$('#studio-view').hidden,toast});
 let toastTimer, previewBlob,visualUI,disposeFieldEditors;
 let studioLogoKey='',studioLogoVersion=0;
 function setBrandImage(image,src,custom){
@@ -60,10 +62,10 @@ async function api(path, options = {}) {
   if(!response.ok){if(response.status===401 && path!=='/api/login')showLogin();throw new Error(result.error || 'No se pudo completar esta acción.');}
   return result;
 }
-function showLogin(){ disposeFieldEditors?.();$('#login-view').hidden=false;$('#studio-view').hidden=true;state.drafts.clear();state.mediaDrafts.clear();visualUI?.destroy();visualUI=null;workspace.reset();journalUI.reset();state.profile={};state.texts=[];state.media=[];studioLogoKey='';studioLogoVersion++;$('#password').value='';syncPublishedLogo(); }
+function showLogin(){ disposeFieldEditors?.();$('#login-view').hidden=false;$('#studio-view').hidden=true;state.drafts.clear();state.mediaDrafts.clear();visualUI?.destroy();visualUI=null;workspace.reset();journalUI.reset();socialLinksUI.reset();state.profile={};state.texts=[];state.media=[];studioLogoKey='';studioLogoVersion++;$('#password').value='';syncPublishedLogo(); }
 function nav(){
-  const links=[{id:'overview',name:'Vista general',icon:'home'},{id:'visual',name:'Editar mi página',icon:'hero'},...sections.map(s=>({...s,icon:s.id})),...journalDefinitions.map(d=>({id:'journal-'+d.id,name:d.labels.es,icon:'media'})),{id:'media',name:'Fotos, videos y logo',icon:'media'},{id:'account',name:'Mi cuenta',icon:'interface'}];
-  $('#main-nav').innerHTML=links.map(s=>`${s.id==='media'?'<div class="nav-separator"></div>':''}<a class="nav-item ${state.route===s.id?'active':''}" href="#${s.id}" ${state.route===s.id?'aria-current="page"':''}>${icon(s.icon)}<span>${s.name}</span>${(['overview','account'].includes(s.id)||s.id.startsWith('journal-'))?'':`<small class="nav-count">${s.id==='visual'?state.texts.length:s.id==='media'?state.media.filter(row=>row.status==='published').length:state.texts.filter(row=>row.section===s.id).length}</small>`}</a>`).join('');
+  const links=[{id:'overview',name:'Vista general',icon:'home'},{id:'visual',name:'Editar mi página',icon:'hero'},...sections.map(s=>({...s,icon:s.id})),...journalDefinitions.map(d=>({id:'journal-'+d.id,name:d.labels.es,icon:'media'})),{id:'social-links',name:'Enlaces de redes',icon:'interface'},{id:'media',name:'Fotos, videos y logo',icon:'media'},{id:'account',name:'Mi cuenta',icon:'interface'}];
+  $('#main-nav').innerHTML=links.map(s=>`${s.id==='media'?'<div class="nav-separator"></div>':''}<a class="nav-item ${state.route===s.id?'active':''}" href="#${s.id}" ${state.route===s.id?'aria-current="page"':''}>${icon(s.icon)}<span>${s.name}</span>${(['overview','account','social-links'].includes(s.id)||s.id.startsWith('journal-'))?'':`<small class="nav-count">${s.id==='visual'?state.texts.length:s.id==='media'?state.media.filter(row=>row.status==='published').length:state.texts.filter(row=>row.section===s.id).length}</small>`}</a>`).join('');
   $('#main-nav').insertAdjacentHTML('beforeend','<div class="nav-separator"></div><div class="nav-heading suite-nav-heading">DALE VIDA AL STUDIO</div>'+workspaceSections.map(s=>`<a class="nav-item ${state.route===s.id?'active':''}" href="#${s.id}" ${state.route===s.id?'aria-current="page"':''}><span class="nav-glyph" aria-hidden="true">${s.glyph}</span><span>${s.name}</span></a>`).join(''));
 }
 function pageHeading(eyebrow,title,description,actions=''){
@@ -85,7 +87,7 @@ function currentRows(){return state.route==='visual'?state.texts:state.texts.fil
 function values(row){return {...row,...state.drafts.get(row.id)};}
 function mediaOf(placement){return state.mediaDrafts.get(placement)||state.media.find(row=>row.placement===placement);}
 function currentPlacements(){return ['visual','media'].includes(state.route)?Object.keys(placementLabels):({hero:['hero'],studio:['studio'],services:['graphic','digital'],footer:['logo'],interface:['logo']}[state.route]||[]);}
-function allDirty(){return state.drafts.size+state.mediaDrafts.size+(journalUI.hasUnsaved()?1:0);}
+function allDirty(){return state.drafts.size+state.mediaDrafts.size+(journalUI.hasUnsaved()?1:0)+(socialLinksUI.hasUnsaved()?1:0);}
 function mediaInput(row){return {placement:row.placement,image:row.image.id,status:row.status||'published',fit:row.fit||(row.placement==='logo'?'contain':'cover'),position:row.position||'50% 50%',...(row.placement==='logo'?{logo_size:logoSize(row.logo_size)}:{}),...Object.fromEntries(Object.keys(languages).map(lang=>['alt_'+lang,mediaAlt(row.placement,lang,row['alt_'+lang])]))};}
 function recordMediaDraft(placement,fields){
  const original=state.media.find(row=>row.placement===placement),row={placement,status:'published',...mediaOf(placement),...fields};
@@ -133,8 +135,9 @@ async function changePassword(event){
  finally{button.disabled=false;button.textContent='Guardar nueva contraseña';}
 }
 function render(){
-  syncStudioLogo();journalUI.unmount();
-  disposeFieldEditors?.();visualUI?.destroy();visualUI=null;nav();$('#breadcrumb').textContent=state.route==='account'?'Mi cuenta':state.route==='visual'?'Editar mi página':state.route==='overview'?'Vista general':state.route==='media'?'Fotos, videos y logo':(sections.find(s=>s.id===state.route)||workspaceSections.find(s=>s.id===state.route))?.name||journalDefinitions.find(d=>'journal-'+d.id===state.route)?.labels.es;
+  syncStudioLogo();journalUI.unmount();socialLinksUI.unmount();
+  disposeFieldEditors?.();visualUI?.destroy();visualUI=null;nav();$('#breadcrumb').textContent=state.route==='social-links'?'Enlaces de redes':state.route==='account'?'Mi cuenta':state.route==='visual'?'Editar mi página':state.route==='overview'?'Vista general':state.route==='media'?'Fotos, videos y logo':(sections.find(s=>s.id===state.route)||workspaceSections.find(s=>s.id===state.route))?.name||journalDefinitions.find(d=>'journal-'+d.id===state.route)?.labels.es;
+  if(state.route==='social-links'){socialLinksUI.open();return;}
   if(state.route.startsWith('journal-')){journalUI.open(state.route);return;}
   if(workspaceSections.some(s=>s.id===state.route)){workspace.open(state.route);return;}
   $('#content').innerHTML=state.route==='account'?accountPage():state.route==='visual'?visualPage():state.route==='overview'?overview():state.route==='media'?mediaPage():editor();
@@ -193,7 +196,7 @@ async function load(){
   $('#login-view').hidden=true;$('#studio-view').hidden=false;route();
 }
 function route(){
-  const hash=location.hash.slice(1),allowed=['overview','visual','media','account',...sections.map(s=>s.id),...workspaceSections.map(s=>s.id),...journalDefinitions.map(d=>'journal-'+d.id)];state.route=allowed.includes(hash)?hash:'overview';state.filter='';closeMenu();render();
+  const hash=location.hash.slice(1),allowed=['overview','visual','media','account','social-links',...sections.map(s=>s.id),...workspaceSections.map(s=>s.id),...journalDefinitions.map(d=>'journal-'+d.id)];state.route=allowed.includes(hash)?hash:'overview';state.filter='';closeMenu();render();
 }
 function openMenu(){ $('#sidebar').classList.add('open');$('#sidebar-shade').hidden=false;$('#menu-toggle').setAttribute('aria-expanded','true'); }
 function closeMenu(){ $('#sidebar').classList.remove('open');$('#sidebar-shade').hidden=true;$('#menu-toggle').setAttribute('aria-expanded','false'); }

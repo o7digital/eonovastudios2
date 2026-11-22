@@ -1,9 +1,10 @@
 import {createServer} from 'node:net';
 import {randomUUID} from 'node:crypto';
+import {socialLinkDefinitions} from '../../cms/studio/public/social-links-data.js';
 import {createStudioServer} from '../../cms/studio/server.mjs';
 export async function journalFixture(t,{readonly=false}={}){
  const reservation=createServer();await new Promise(r=>reservation.listen(0,'127.0.0.1',r));const port=reservation.address().port;await new Promise(r=>reservation.close(r));
- const base='http://127.0.0.1:'+port,sections=['blog','book','news'].map(id=>({id,enabled:false})),entries=[],files=new Map();let publications=0;
+ const base='http://127.0.0.1:'+port,sections=['blog','book','news'].map(id=>({id,enabled:false})),entries=[],files=new Map();let publications=0;const socialRows=socialLinkDefinitions.map((d,sort)=>({id:d.id,platform:d.id,label:d.label,url:'',enabled:false,sort}));
  const server=createStudioServer({cms:'https://cms.example',origin:base,secret:'a-test-session-secret-of-at-least-32-characters',secure:false,publishEnabled:true,publishSecret:'test-publish-secret',async fetcher(url,options={}){
   const u=new URL(url),path=u.pathname,result=data=>Response.json({data}),input=()=>JSON.parse(options.body);
   if(path==='/auth/login'||path==='/auth/refresh')return result({access_token:readonly?'readonly':'editor',refresh_token:'refresh',expires:3600000});
@@ -12,6 +13,11 @@ export async function journalFixture(t,{readonly=false}={}){
   if(path==='/permissions/me')return result({site_texts:{update:{access:readonly?'none':'full'}}});
   if(path==='/items/site_texts'||path==='/items/section_media'||path==='/folders')return result([]);
   if(path==='/api/cms-publish'){publications++;return Response.json({id:'deployment'},{status:202});}
+  if(path==='/items/social_links'){
+   if(options.method==='PATCH'){if(readonly)return new Response(null,{status:403});return result(input().map(change=>{const row=socialRows.find(r=>r.id===change.id);Object.assign(row,change);return row;}));}
+   if(options.method==='POST'){if(readonly)return new Response(null,{status:403});socialRows.push(input());return result(socialRows.at(-1));}
+   return result(structuredClone(socialRows));
+  }
   if(path==='/items/journal_sections')return result(structuredClone(sections));
   if(path.startsWith('/items/journal_sections/')){if(readonly)return new Response(null,{status:403});const section=sections.find(s=>s.id===path.split('/').at(-1));Object.assign(section,input());return result(section);}
   if(path==='/items/journal_entries'){
@@ -28,5 +34,5 @@ export async function journalFixture(t,{readonly=false}={}){
  await new Promise(r=>server.listen(port,'127.0.0.1',r));t.after(()=>new Promise(r=>{server.closeAllConnections();server.close(r);}));
  const login=await fetch(base+'/api/login',{method:'POST',headers:{Origin:base,'Content-Type':'application/json'},body:JSON.stringify({email:'owner@example.com',password:'test-password'})}),cookie=login.headers.get('set-cookie').split(';')[0];
  const request=(path,method='GET',data)=>fetch(base+path,{method,headers:{Origin:base,Cookie:cookie,'Content-Type':'application/json'},...(data?{body:JSON.stringify(data)}:{})});
- return {base,sections,entries,files,cookie,request,publications:()=>publications};
+ return {base,sections,entries,files,cookie,request,socialRows,publications:()=>publications};
 }

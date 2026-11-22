@@ -1,0 +1,13 @@
+import deployment from './deployment.json' with {type:'json'};
+import {socialLinkDefinitions} from './studio/public/social-links-data.js';
+if(process.env.PUBLIC_URL!==deployment.url)throw Error('Use the EON Directus service environment.');
+const auth=await fetch(new URL('/auth/login',deployment.url),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:process.env.ADMIN_EMAIL,password:process.env.ADMIN_PASSWORD,mode:'json'})});if(!auth.ok)throw Error('CMS login failed ('+auth.status+').');
+const session=(await auth.json()).data,token=session.access_token;
+async function api(path,method='GET',body){const r=await fetch(new URL(path,deployment.url),{method,headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(60000)});if(!r.ok)throw Error(`CMS ${method} ${path} failed (${r.status}).`);return r.status===204?null:(await r.json()).data;}
+const field=(name,type='string',schema={},meta={})=>({field:name,type,schema:{is_nullable:true,...schema},meta:{interface:type==='boolean'?'boolean':'input',...meta}});
+try{
+ const collections=await api('/collections');if(!collections.some(c=>c.collection==='social_links'))await api('/collections','POST',{collection:'social_links',schema:{},meta:{icon:'share',color:'#9AEE68',sort_field:'sort',note:'Enlaces de redes sociales visibles en el sitio EON NOVA'},fields:[field('id','string',{is_primary_key:true,is_nullable:false,max_length:60},{readonly:true}),field('platform','string',{}, {readonly:true}),field('label','string',{max_length:60}),field('url','string',{max_length:2048}),field('enabled','boolean',{default_value:false,is_nullable:false}),field('sort','integer',{default_value:0})]});
+ const existing=await api('/items/social_links?fields=id&limit=-1');for(const [sort,d] of socialLinkDefinitions.entries())if(!existing.some(r=>r.id===d.id))await api('/items/social_links','POST',{id:d.id,platform:d.id,label:d.label,url:'',enabled:false,sort});
+ const policies=await api('/policies?limit=-1'),permissions=await api('/permissions?limit=-1');for(const name of ['EON Studio editor','Website build']){const policy=policies.find(p=>p.name===name);if(!policy)throw Error('Missing CMS policy: '+name);for(const action of name==='Website build'?['read']:['read','create','update'])if(!permissions.some(p=>p.policy===policy.id&&p.collection==='social_links'&&p.action===action))await api('/permissions','POST',{policy:policy.id,collection:'social_links',action,fields:['*'],permissions:{}});}
+ console.log('Social profile links ready. Existing URLs and visibility preserved.');
+}finally{await api('/auth/logout','POST',{refresh_token:session.refresh_token}).catch(()=>{});}

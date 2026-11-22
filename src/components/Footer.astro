@@ -1,6 +1,9 @@
 ---
 import Brand from './Brand.astro';
 import {home, privacy} from '../i18n';
+import {getSocialLinks} from '../lib/social-links.mjs';
 const {lang = 'es'} = Astro.props;
+const socialLinks=await getSocialLinks();
+const socialLabel={es:'Redes sociales',en:'Social media',fr:'Réseaux sociaux'}[lang];
 ---
-<footer><p class="eyebrow">EL SIGUIENTE FRAME TODAVÍA NO EXISTE.</p><a class="footer-title" href={home(lang) + '#inicio'}>Vamos a<br><em>imaginarlo.</em><span>✳</span></a><div class="footer-bottom"><Brand lang={lang}/><span>DISEÑO DIGITAL & ANIMACIÓN</span><span>© 2026 EON NOVA STUDIOS</span></div><div class="legal-links"><a href="mailto:info@eonovastudios.com">info@eonovastudios.com</a><a href="/admin/">Eon Studio</a><a href={privacy(lang)}>Aviso de privacidad</a><a href={home(lang) + '#contacto'}>Contacto ↗</a><a href="https://www.o7digital.com/" target="_blank" rel="noopener noreferrer">o7 Digital ↗</a></div></footer>
+<footer><p class="eyebrow">EL SIGUIENTE FRAME TODAVÍA NO EXISTE.</p><a class="footer-title" href={home(lang) + '#inicio'}>Vamos a<br><em>imaginarlo.</em><span>✳</span></a><div class="footer-bottom"><Brand lang={lang}/><span>DISEÑO DIGITAL & ANIMACIÓN</span><span>© 2026 EON NOVA STUDIOS</span></div>{socialLinks.length>0&&<nav class="public-social-links" aria-label={socialLabel}>{socialLinks.map(link=><a href={link.url} target="_blank" rel="noopener noreferrer">{link.label}<span aria-hidden="true"> ↗</span></a>)}</nav>}<div class="legal-links"><a href="mailto:info@eonovastudios.com">info@eonovastudios.com</a><a href="/admin/">Eon Studio</a><a href={privacy(lang)}>Aviso de privacidad</a><a href={home(lang) + '#contacto'}>Contacto ↗</a><a href="https://www.o7digital.com/" target="_blank" rel="noopener noreferrer">o7 Digital ↗</a></div></footer>

@@ -10,7 +10,8 @@
     "test": "node --test tests/*.test.mjs cms/studio/*.test.mjs",
     "test:studio:browser": "node --test tests/studio-visual.browser.mjs",
     "test:contact:browser": "node --test tests/contact.browser.mjs",
-    "test:journal:browser": "node --test tests/journal.browser.mjs"
+    "test:journal:browser": "node --test tests/journal.browser.mjs",
+    "test:social-links:browser": "node --test tests/social-links.browser.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.0",
