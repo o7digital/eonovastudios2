@@ -3,6 +3,21 @@ import assert from 'node:assert/strict';
 import { applyCopy, cleanCopy, loadCms, validateRows } from '../src/lib/cms.mjs';
 import publish from '../api/cms-publish.mjs';
 import sharp from 'sharp';
+import {normalizeTextColor} from '../cms/studio/public/text-color.js';
+
+test('text colors survive public rendering while other CSS and executable attributes are removed',()=>{
+  assert.equal(normalizeTextColor('#F60'),'#ff6600');
+  assert.equal(normalizeTextColor('rgb(51, 102, 204)'),'#3366cc');
+  for(const value of ['red','#abcd','rgb(256, 0, 0)','url(https://example.com)','var(--color)'])assert.equal(normalizeTextColor(value),null);
+  const copy='<span style="color:rgb(255, 102, 0);background:url(https://example.com);position:fixed" onclick="alert(1)">Ideas</span> <em style="color:#36C">moving</em><font color="#F60">!</font>';
+  const clean='<span style="color:#ff6600">Ideas</span> <em style="color:#3366cc">moving</em><span style="color:#ff6600">!</span>';
+  assert.equal(cleanCopy(copy),clean);
+  assert.equal(cleanCopy('<span style="color:expression(alert(1));background:red" onmouseover="x()">Safe</span><script>alert(1)</script>'),'<span>Safe</span>');
+  for(const lang of ['es','en','fr']){
+    const row={source:'Original',es:copy,en:copy,fr:copy};
+    assert.equal(applyCopy('<h1>Original</h1>',[row],lang,{}),'<h1>'+clean+'</h1>');
+  }
+});
 
 test('CMS edits only text and inline fragments, never attributes or scripts', () => {
   const rows = [{source:'Hola',es:'Nuevo <em>texto</em><script>alert(1)</script>',en:'Hello new',fr:'Bonjour neuf'}];

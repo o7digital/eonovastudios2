@@ -1,7 +1,8 @@
-import {visualPageMarkup,mountVisualPage} from './visual-page.js?v=studio-2';
+import {visualPageMarkup,mountVisualPage} from './visual-page.js?v=color-1';
 import {logoSize,prepareLogoPreview} from './logo.js?v=logo-1';
 import {mediaAlt,mediaLabels} from './media-copy.js?v=studio-2';
-import {mountEditors} from './editor.js?v=visual-2';
+import {mountEditors} from './editor.js?v=color-1';
+import {colorToolsMarkup} from './text-color.js?v=color-1';
 import {createWorkspaceUI,workspaceSections} from './workspace-ui.js?v=es-mx-1';
 const $ = selector => document.querySelector(selector);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -31,7 +32,7 @@ const placementLabels = {logo:'Mi logo · encabezado y pie',hero:'Inicio · imag
 const statusLabel = {published:'Incluir en el sitio',draft:'Borrador',archived:'Archivado'};
 const state = {texts:[],media:[],drafts:new Map(),route:'overview',lang:'es',filter:'',busy:false,profile:{},publishReady:false,canEdit:false,mediaEdit:null,mediaDrafts:new Map(),mediaUploading:false,visualPrefs:{width:1440,mode:'edit'}};
 const workspace=createWorkspaceUI({api,toast,confirmDialog,isCurrent:route=>state.route===route});
-let toastTimer, previewBlob,visualUI;
+let toastTimer, previewBlob,visualUI,disposeFieldEditors;
 function toast(message, error = false) { const node=$('#toast');node.textContent=message;node.classList.toggle('error',error);node.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>node.hidden=true,error?8500:4500); }
 async function api(path, options = {}) {
   const response=await fetch(path,{credentials:'same-origin',...options,headers:{...(options.body && !(options.body instanceof Blob)?{'Content-Type':'application/json'}:{}),...options.headers}});
@@ -39,7 +40,7 @@ async function api(path, options = {}) {
   if(!response.ok){if(response.status===401 && path!=='/api/login')showLogin();throw new Error(result.error || 'No se pudo completar esta acción.');}
   return result;
 }
-function showLogin(){ $('#login-view').hidden=false;$('#studio-view').hidden=true;state.drafts.clear();state.mediaDrafts.clear();visualUI?.destroy();visualUI=null;workspace.reset();state.profile={};state.texts=[];state.media=[];$('#password').value=''; }
+function showLogin(){ disposeFieldEditors?.();$('#login-view').hidden=false;$('#studio-view').hidden=true;state.drafts.clear();state.mediaDrafts.clear();visualUI?.destroy();visualUI=null;workspace.reset();state.profile={};state.texts=[];state.media=[];$('#password').value=''; }
 function nav(){
   const links=[{id:'overview',name:'Vista general',icon:'home'},{id:'visual',name:'Editar mi página',icon:'hero'},...sections.map(s=>({...s,icon:s.id})),{id:'media',name:'Fotos, videos y logo',icon:'media'},{id:'account',name:'Mi cuenta',icon:'interface'}];
   $('#main-nav').innerHTML=links.map(s=>`${s.id==='media'?'<div class="nav-separator"></div>':''}<a class="nav-item ${state.route===s.id?'active':''}" href="#${s.id}" ${state.route===s.id?'aria-current="page"':''}>${icon(s.icon)}<span>${s.name}</span>${['overview','account'].includes(s.id)?'':`<small class="nav-count">${s.id==='visual'?state.texts.length:s.id==='media'?state.media.filter(row=>row.status==='published').length:state.texts.filter(row=>row.section===s.id).length}</small>`}</a>`).join('');
@@ -80,7 +81,7 @@ async function stageVisualPhoto(placement,file,onProgress){
 }
 function editableCard(row){
   const data=values(row),title=plain(row.label || row.source),long=row.source.length>160;
-  return `<article class="text-card ${long?'long':''} ${state.drafts.has(row.id)?'changed':''}" data-card="${row.id}"><div class="field-head"><label id="label-${row.id}" class="field-label" for="text-${row.id}">${esc(title)}</label><span class="field-status ${esc(data.status)}" data-badge="${row.id}">${data.status==='published'?'Listo para el sitio':data.status==='draft'?'Borrador':'Archivado'}</span></div>${state.lang!=='es'?`<p class="source-hint">Español · ${esc(plain(data.es))}</p>`:''}<div class="visual-editor"><div class="rich-toolbar" role="toolbar" aria-label="Formato del texto"><button type="button" data-format="bold" title="Negrita (Ctrl/Cmd+B)" aria-label="Negrita"><strong>B</strong></button><button type="button" data-format="italic" title="Énfasis (Ctrl/Cmd+I)" aria-label="Énfasis"><em>Énfasis</em></button><span class="toolbar-divider"></span><button type="button" data-format="undo" aria-label="Deshacer" title="Deshacer">↶</button><button type="button" data-format="redo" aria-label="Rehacer" title="Rehacer">↷</button><span class="editor-mode">VISTA VISUAL</span></div><div id="text-${row.id}" class="rich-field ${long?'rich-long':''}" data-rich-text="${row.id}" role="textbox" aria-multiline="true" aria-labelledby="label-${row.id}" lang="${state.lang}" spellcheck="true">${esc(data[state.lang])}</div><div class="rich-bottom"><span>Formato listo para el sitio</span><span class="editor-length"></span></div></div><div class="field-foot"><span><i class="editable-dot"></i>${state.canEdit?'Editable':'Solo lectura'} · ${languages[state.lang].name}</span><select aria-label="Visibilidad: ${esc(title.slice(0,90))}" data-status="${row.id}" ${!state.canEdit?'disabled':''}>${Object.entries(statusLabel).map(([value,label])=>`<option value="${value}" ${value===data.status?'selected':''}>${label}</option>`).join('')}</select></div></article>`;
+  return `<article class="text-card ${long?'long':''} ${state.drafts.has(row.id)?'changed':''}" data-card="${row.id}"><div class="field-head"><label id="label-${row.id}" class="field-label" for="text-${row.id}">${esc(title)}</label><span class="field-status ${esc(data.status)}" data-badge="${row.id}">${data.status==='published'?'Listo para el sitio':data.status==='draft'?'Borrador':'Archivado'}</span></div>${state.lang!=='es'?`<p class="source-hint">Español · ${esc(plain(data.es))}</p>`:''}<div class="visual-editor"><div class="rich-toolbar" role="toolbar" aria-label="Formato del texto"><button type="button" data-format="bold" title="Negrita (Ctrl/Cmd+B)" aria-label="Negrita"><strong>B</strong></button><button type="button" data-format="italic" title="Énfasis (Ctrl/Cmd+I)" aria-label="Énfasis"><em>Énfasis</em></button><span class="toolbar-divider"></span><button type="button" data-format="undo" aria-label="Deshacer" title="Deshacer">↶</button><button type="button" data-format="redo" aria-label="Rehacer" title="Rehacer">↷</button><span class="editor-mode">VISTA VISUAL</span></div>${colorToolsMarkup()}<div id="text-${row.id}" class="rich-field ${long?'rich-long':''}" data-rich-text="${row.id}" role="textbox" aria-multiline="true" aria-labelledby="label-${row.id}" lang="${state.lang}" spellcheck="true">${esc(data[state.lang])}</div><div class="rich-bottom"><span>Formato listo para el sitio</span><span class="editor-length"></span></div></div><div class="field-foot"><span><i class="editable-dot"></i>${state.canEdit?'Editable':'Solo lectura'} · ${languages[state.lang].name}</span><select aria-label="Visibilidad: ${esc(title.slice(0,90))}" data-status="${row.id}" ${!state.canEdit?'disabled':''}>${Object.entries(statusLabel).map(([value,label])=>`<option value="${value}" ${value===data.status?'selected':''}>${label}</option>`).join('')}</select></div></article>`;
 }
 function saveBar(){return `<div class="editor-savebar"><div><strong id="save-summary">${pendingSummary()}</strong><small>Guarda tus cambios y pulsa Publicar mi sitio para actualizar la página pública.</small></div><div class="savebar-actions"><button class="button secondary" data-revert ${!sectionDirty()?'disabled':''}>Descartar cambios</button><button class="button primary" data-save ${!sectionDirty()||!state.canEdit?'disabled':''}>Guardar cambios <span>↗</span></button><button class="button secondary" data-publish ${!state.publishReady||allDirty()||!state.canEdit?'disabled':''}>Publicar mi sitio <span>↗</span></button></div></div>`;}
 function sectionDirty(){return currentRows().filter(row=>state.drafts.has(row.id)).length+currentPlacements().filter(placement=>state.mediaDrafts.has(placement)).length;}
@@ -112,13 +113,13 @@ async function changePassword(event){
  finally{button.disabled=false;button.textContent='Guardar nueva contraseña';}
 }
 function render(){
-  visualUI?.destroy();visualUI=null;nav();$('#breadcrumb').textContent=state.route==='account'?'Mi cuenta':state.route==='visual'?'Editar mi página':state.route==='overview'?'Vista general':state.route==='media'?'Fotos, videos y logo':(sections.find(s=>s.id===state.route)||workspaceSections.find(s=>s.id===state.route)).name;
+  disposeFieldEditors?.();visualUI?.destroy();visualUI=null;nav();$('#breadcrumb').textContent=state.route==='account'?'Mi cuenta':state.route==='visual'?'Editar mi página':state.route==='overview'?'Vista general':state.route==='media'?'Fotos, videos y logo':(sections.find(s=>s.id===state.route)||workspaceSections.find(s=>s.id===state.route)).name;
   if(workspaceSections.some(s=>s.id===state.route)){workspace.open(state.route);return;}
   $('#content').innerHTML=state.route==='account'?accountPage():state.route==='visual'?visualPage():state.route==='overview'?overview():state.route==='media'?mediaPage():editor();
   $('#account-password-form')?.addEventListener('submit',changePassword);
   $('#content').querySelectorAll('[data-publish]').forEach(button=>button.addEventListener('click',publish));
   $('#content').querySelectorAll('[data-language]').forEach(button=>button.addEventListener('click',()=>{state.lang=button.dataset.language;render();}));
-  mountEditors($('#content'),{editable:state.canEdit,onChange:(id,value)=>{recordDraft(id,state.lang,value);updatePending();}});
+  disposeFieldEditors=mountEditors($('#content'),{editable:state.canEdit,onChange:(id,value)=>{recordDraft(id,state.lang,value);updatePending();}});
   $('#content').querySelectorAll('[data-status]').forEach(input=>input.addEventListener('change',()=>{recordDraft(input.dataset.status,'status',input.value);updatePending();}));
   if(!$('#content .visual-page'))$('#content').querySelector('[data-save]')?.addEventListener('click',saveTexts);
   $('#content').querySelector('[data-revert]')?.addEventListener('click',async()=>{if(await confirmDialog('¿Descartar los cambios?','Los textos guardados se conservan. Solo se descartan los cambios sin guardar de esta sección.')){for(const row of currentRows())state.drafts.delete(row.id);for(const placement of currentPlacements())state.mediaDrafts.delete(placement);render();}});
@@ -137,7 +138,7 @@ function updatePending(){
   const editable=state.canEdit&&!state.busy&&!state.mediaUploading;
   $('#content').querySelectorAll('[data-rich-text]').forEach(field=>field.contentEditable=String(editable));
   const doc=$('#content iframe')?.contentDocument;doc?.querySelectorAll('[data-eon-text]').forEach(field=>field.contentEditable=String(editable));
-  $('#content').querySelectorAll('[data-format],[data-status]').forEach(field=>field.disabled=!editable);
+  $('#content').querySelectorAll('[data-format],[data-status],.text-color-tools input,.text-color-tools button').forEach(field=>field.disabled=!editable);
   if($('#save-summary'))$('#save-summary').textContent=pendingSummary();
   if($('[data-save]'))$('[data-save]').disabled=!sectionDirty()||!editable;if($('[data-revert]'))$('[data-revert]').disabled=!sectionDirty()||state.busy||state.mediaUploading;
   $('#content').querySelectorAll('[data-publish]').forEach(button=>button.disabled=!state.publishReady||allDirty()>0||state.busy||state.mediaUploading||!state.canEdit);

@@ -1,4 +1,5 @@
-import {cleanInline,mountEditors} from './editor.js?v=visual-2';
+import {cleanInline,renderInline,mountEditors} from './editor.js?v=color-1';
+import {colorToolsMarkup} from './text-color.js?v=color-1';
 import {logoCss,logoStyle,logoSize,prepareLogoPreview} from './logo.js?v=logo-1';
 import {mediaAlt,mediaLabels} from './media-copy.js?v=studio-2';
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -18,7 +19,7 @@ export function visualPageMarkup(lang){
 export function mountVisualPage(root,{lang,rows,valueOf,onText,onMediaOptions,onPhoto,onMediaChange,onSave,canEdit,mediaOf,placements=Object.keys(selectors),anchor,prefs={},dirtyCount=()=>0,busy=()=>false}){
  const frame=root.querySelector('iframe'),status=root.querySelector('.visual-page-status'),inspector=root.querySelector('.visual-inspector-content'),upload=root.querySelector('.visual-upload');
  const targets=new Map();
- let doc,selected,destroyed=false,count=0,uploading=false,width=prefs.width||1440,mode=prefs.mode||'edit';
+ let doc,selected,disposeEditors,destroyed=false,count=0,uploading=false,width=prefs.width||1440,mode=prefs.mode||'edit';
  const normalize=html=>{const t=document.createElement('template');t.innerHTML=html;return t.innerHTML.replace(/\s+/g,' ').trim();};
  const lookup=new Map();
  for(const row of rows)for(const value of [row[lang],row.source])if(value)lookup.set(normalize(value),row);
@@ -36,14 +37,16 @@ export function mountVisualPage(root,{lang,rows,valueOf,onText,onMediaOptions,on
  function changeText(row,value,origin){
   if(!editable())return;
   onText(row.id,lang,value);
-  for(const node of targets.get(row.id)||[])if(node!==origin)node.innerHTML=cleanInline(value);
-  const input=inspector.querySelector('[data-rich-text]');if(selected?.kind==='text'&&selected.row.id===row.id&&input!==origin&&input)input.innerHTML=cleanInline(value);
+  for(const node of targets.get(row.id)||[])if(node!==origin)renderInline(node,value);
+  const input=inspector.querySelector('[data-rich-text]');if(selected?.kind==='text'&&selected.row.id===row.id&&input!==origin&&input)renderInline(input,value);
   refresh();
  }
  function selectText(row,node){
-  selected={kind:'text',row,node};highlight(node);setInspectorTab('edit');
+  disposeEditors?.();selected={kind:'text',row,node,editingNode:node};highlight(node);setInspectorTab('edit');
   inspector.innerHTML=`<span class="visual-kind">TEXTO · ${lang.toUpperCase()}</span><h2>${esc(row.label)}</h2><div class="visual-editor"><div class="rich-toolbar" role="toolbar" aria-label="Formato"><button type="button" data-format="bold" aria-label="Negrita"><strong>B</strong></button><button type="button" data-format="italic" aria-label="Énfasis">Énfasis</button><button type="button" data-format="undo" aria-label="Deshacer">↶</button></div><div data-rich-text="${row.id}" class="rich-field" role="textbox" aria-label="Texto seleccionado" aria-multiline="true">${esc(valueOf(row)[lang])}</div><div class="rich-bottom"><span class="editor-length"></span></div></div><p>La tipografía y el diseño se conservan.</p>`;
-  mountEditors(inspector,{editable:editable(),onChange:(_id,value)=>changeText(row,value,inspector.querySelector('[data-rich-text]'))});refresh();
+  inspector.querySelector('.rich-toolbar').insertAdjacentHTML('afterend',colorToolsMarkup());
+  inspector.insertAdjacentHTML('beforeend','<p>Selecciona las letras que quieres colorear. Sin selección, el color se aplica a todo el texto.</p>');
+  disposeEditors=mountEditors(inspector,{editable:editable(),colorDocument:doc,colorTarget:()=>selected.editingNode||inspector.querySelector('[data-rich-text]'),onFocus:field=>{selected.editingNode=field;},onColorChange:(target,value)=>changeText(row,value,target),onChange:(_id,value)=>changeText(row,value,inspector.querySelector('[data-rich-text]'))});refresh();
  }
  async function applyMedia(placement){
   if(!doc||destroyed)return;
@@ -67,7 +70,7 @@ export function mountVisualPage(root,{lang,rows,valueOf,onText,onMediaOptions,on
   element.dataset.eonPlacement=placement;container.prepend(element);
  }
  async function selectMedia(placement,node){
-  selected={kind:'media',placement,node};highlight(node);setInspectorTab('edit');
+  disposeEditors?.();selected={kind:'media',placement,node};highlight(node);setInspectorTab('edit');
   const row=mediaOf(placement),video=row?.image?.type?.startsWith('video/'),logo=placement==='logo';
   inspector.innerHTML=`<span class="visual-kind">${logo?'LOGO':video?'VIDEO':'IMAGEN'}</span><h2>${esc(mediaLabels[placement])}</h2><div class="visual-media-preview">${row?.image?.id?(video?`<video class="visual-photo" controls preload="metadata" src="/api/image/${esc(row.image.id)}"></video>`:`<img class="visual-photo ${logo?'is-logo':''}" src="/api/image/${esc(row.image.id)}" alt="${esc(mediaAlt(placement,lang,row['alt_'+lang]))}">`):'<span class="visual-placeholder">Elige tu archivo</span>'}</div><button type="button" class="button primary" data-upload-visual>${logo?'Subir mi logo':'Subir foto o video'}</button><p>${logo?'JPG, PNG, WebP, AVIF o GIF · Hasta 25 MB.':'Fotos hasta 25 MB · Videos MP4 o WebM hasta 100 MB.'}</p>${logo&&row?.image?.id?`<label class="visual-logo-label" for="visual-logo-size">Tamaño del logo · <output id="visual-logo-value">${logoSize(row.logo_size)} px</output></label><input id="visual-logo-size" data-logo-size type="range" min="40" max="120" step="2" value="${logoSize(row.logo_size)}">`:''}<p>Selecciona el archivo, revisa el resultado en la página y pulsa <strong>Guardar cambios</strong>.</p><button type="button" class="button secondary" data-media-options>Más opciones</button>`;
   refresh();
@@ -78,7 +81,7 @@ export function mountVisualPage(root,{lang,rows,valueOf,onText,onMediaOptions,on
  }
  function setInspectorTab(tab){root.querySelectorAll('[data-inspector]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.inspector===tab)));}
  function outline(){
-  setInspectorTab('contents');
+  disposeEditors?.();setInspectorTab('contents');
   inspector.innerHTML=`<span class="visual-kind">CONTENIDO DE LA PÁGINA</span><h2>Elige qué quieres cambiar.</h2><div class="visual-outline">${placements.map(placement=>`<button type="button" data-outline-media="${placement}"><strong>${esc(mediaLabels[placement])}</strong><span>Logo, foto o video</span></button>`).join('')}${rows.map(row=>`<button type="button" data-outline-text="${row.id}"><strong>${esc(row.label)}</strong><span>${esc(valueOf(row)[lang].replace(/<[^>]*>/g,' ').slice(0,100))}</span></button>`).join('')}</div>`;
  }
  function resize(){
@@ -94,7 +97,7 @@ export function mountVisualPage(root,{lang,rows,valueOf,onText,onMediaOptions,on
  }
  function scrollToAnchor(){if(anchor)doc?.getElementById(anchor)?.scrollIntoView({block:'start'});}
  async function activate(){
-  if(destroyed)return;doc=frame.contentDocument;
+  if(destroyed)return;if(selected){outline();selected=null;}doc=frame.contentDocument;
   const loading=root.querySelector('.visual-loading');
   try{
    if(!doc?.querySelector('main'))throw Error('No se pudo abrir la página. Vuelve a intentar.');
@@ -104,9 +107,9 @@ export function mountVisualPage(root,{lang,rows,valueOf,onText,onMediaOptions,on
     if(!node.tagName||['SCRIPT','STYLE','SVG','CANVAS','HEAD','NOSCRIPT'].includes(node.tagName))return;
     const row=rows.find(row=>row.source===node.dataset.eonSource)||lookup.get(normalize(node.innerHTML));
     if(row&&node.textContent.trim()){
-     node.dataset.eonText=row.id;node.innerHTML=cleanInline(valueOf(row)[lang]);node.setAttribute('role','textbox');node.setAttribute('aria-label',row.label);node.setAttribute('aria-multiline','true');count++;
+     node.dataset.eonText=row.id;renderInline(node,valueOf(row)[lang]);node.setAttribute('role','textbox');node.setAttribute('aria-label',row.label);node.setAttribute('aria-multiline','true');count++;
      if(!targets.has(row.id))targets.set(row.id,[]);targets.get(row.id).push(node);
-     node.addEventListener('focus',()=>{if(mode==='edit')selectText(row,node);});
+     node.addEventListener('focus',()=>{if(mode!=='edit')return;if(selected?.kind==='text'&&selected.row.id===row.id){selected.node=node;selected.editingNode=node;highlight(node);}else selectText(row,node);});
      node.addEventListener('input',()=>changeText(row,cleanInline(node.innerHTML),node));
      node.addEventListener('paste',event=>{event.preventDefault();if(editable())doc.execCommand('insertText',false,event.clipboardData.getData('text/plain'));});
      node.addEventListener('drop',event=>event.preventDefault());
@@ -162,5 +165,5 @@ export function mountVisualPage(root,{lang,rows,valueOf,onText,onMediaOptions,on
   finally{upload.value='';uploading=false;refresh();}
  });
  const observer=new ResizeObserver(resize);observer.observe(root.querySelector('.visual-page-viewport'));resize();refresh();
- return {refresh,destroy(){destroyed=true;observer.disconnect();frame.removeEventListener('load',activate);root.classList.remove('visual-expanded');}};
+ return {refresh,destroy(){destroyed=true;disposeEditors?.();observer.disconnect();frame.removeEventListener('load',activate);root.classList.remove('visual-expanded');}};
 }

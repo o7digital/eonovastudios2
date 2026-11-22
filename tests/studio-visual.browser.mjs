@@ -6,6 +6,7 @@ import {firefox} from 'playwright';
 import sharp from 'sharp';
 import {logoCss} from '../cms/studio/public/logo.js';
 import {createStudioServer} from '../cms/studio/server.mjs';
+import {cleanCopy} from '../src/lib/cms.mjs';
 
 async function fixture(t, {readonly = false,logo = false} = {}) {
   const css = await readFile(new URL('../src/styles/global.css', import.meta.url), 'utf8');
@@ -118,6 +119,70 @@ test('Firefox: a read-only account cannot edit or publish through the visual edi
   assert.equal(await page.frameLocator('iframe').locator('h1').getAttribute('contenteditable'),'false');
   assert.equal(await page.locator('[data-save]').isDisabled(),true);
   assert.equal(await page.locator('[data-publish]').isDisabled(),true);
+  await page.locator('[data-inspector="contents"]').click();
+  await page.locator('[data-outline-text]').first().click();
+  for(const selector of ['[data-text-color]','[data-text-color-code]','[data-apply-color]'])assert.equal(await page.locator('.visual-inspector '+selector).isDisabled(),true);
+  assert.deepEqual(errors,[]);
+});
+
+async function selectLetters(target,word){
+  await target.evaluate((node,word)=>{
+    node.focus();const doc=node.ownerDocument,walker=doc.createTreeWalker(node,4);
+    for(let text; (text=walker.nextNode());){
+      const offset=text.textContent.indexOf(word);if(offset<0)continue;
+      const range=doc.createRange();range.setStart(text,offset);range.setEnd(text,offset+word.length);
+      doc.getSelection().removeAllRanges();doc.getSelection().addRange(range);return;
+    }
+    throw Error('Word not found: '+word);
+  },word);
+}
+
+test('Firefox: selected letters keep their HEX color across the page, inspector, save and reload',async t=>{
+  const {page,rows,errors}=await fixture(t);
+  const title=page.frameLocator('iframe').locator('h1'),panel=page.locator('.visual-inspector');
+  await title.click();await selectLetters(title,'ideas');
+  await panel.locator('[data-text-color-code]').fill('#FF6600');
+  await panel.locator('[data-apply-color]').click();
+  assert.equal(await title.locator('span').filter({hasText:'ideas'}).evaluate(e=>getComputedStyle(e).color),'rgb(255, 102, 0)');
+  assert.equal((await title.textContent()).replace(/\u00a0/g,' '),'Las ideasno se quedanquietas.');
+  assert.equal(await title.locator('em').evaluate(e=>getComputedStyle(e).color),'rgb(154, 238, 104)');
+  assert.match(await panel.locator('[data-rich-text]').innerHTML(),/color:.*(?:ff6600|255, 102, 0)/i);
+  const before=await title.innerHTML();
+  await panel.locator('[data-text-color-code]').fill('oops');await panel.locator('[data-apply-color]').click();
+  assert.equal(await panel.locator('[data-color-error]').isVisible(),true);
+  assert.equal(await title.innerHTML(),before);
+  const saved=page.waitForResponse(r=>r.url().endsWith('/api/texts')&&r.request().method()==='PATCH');
+  await page.locator('[data-save]').click();assert.equal((await saved).status(),200);
+  await page.locator('.visual-page-status[data-visual-ready]').waitFor();
+  assert.match(cleanCopy(rows[0].es),/style="color:#ff6600"/);
+  await page.reload();await page.locator('.visual-page-status[data-visual-ready]').waitFor();
+  assert.equal(await title.locator('span').filter({hasText:'ideas'}).evaluate(e=>getComputedStyle(e).color),'rgb(255, 102, 0)');
+  await title.click();const input=panel.locator('[data-rich-text]');
+  await selectLetters(input,'quietas.');
+  await panel.locator('[data-text-color]').fill('#3366cc');
+  assert.equal(await title.locator('em').evaluate(e=>getComputedStyle(e.lastElementChild||e).color),'rgb(51, 102, 204)');
+  assert.match(cleanCopy(await title.innerHTML()),/#3366cc/);
+  assert.deepEqual(errors,[]);
+});
+
+test('Firefox: color without selected letters applies to the whole field including emphasized words',async t=>{
+  const {page,errors}=await fixture(t),title=page.frameLocator('iframe').locator('h1');
+  await title.click();
+  await title.evaluate(node=>{const selection=node.ownerDocument.getSelection();selection.collapse(node,0);});
+  const panel=page.locator('.visual-inspector');
+  await panel.locator('[data-text-color-code]').fill('#f60');await panel.locator('[data-text-color-code]').press('Enter');
+  assert.equal(await panel.locator('[data-text-color-code]').inputValue(),'#ff6600');
+  assert.equal(await title.evaluate(node=>{const walker=node.ownerDocument.createTreeWalker(node,4);for(let text;(text=walker.nextNode());)if(text.textContent.trim()&&getComputedStyle(text.parentElement).color!=='rgb(255, 102, 0)')return false;return true;}),true);
+  await page.locator('#main-nav a[href="#hero"]').click();await page.locator('.visual-page-status[data-visual-ready]').waitFor();
+  await page.locator('.studio-text-fields summary').click();
+  const card=page.locator('.text-card').first(),field=card.locator('[data-rich-text]');
+  await field.click();await selectLetters(field,'ideas');
+  await card.locator('[data-text-color-code]').fill('#00aa66');await card.locator('[data-apply-color]').click();
+  assert.equal(await field.locator('span').filter({hasText:'ideas'}).last().evaluate(e=>getComputedStyle(e).color),'rgb(0, 170, 102)');
+  const saved=page.waitForResponse(r=>r.url().endsWith('/api/texts')&&r.request().method()==='PATCH');
+  await page.locator('[data-save]').click();assert.equal((await saved).status(),200);
+  await page.locator('.visual-page-status[data-visual-ready]').waitFor();
+  assert.match(cleanCopy(await page.frameLocator('iframe').locator('h1').innerHTML()),/#00aa66/);
   assert.deepEqual(errors,[]);
 });
 

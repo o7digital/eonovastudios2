@@ -6,9 +6,16 @@ import { parseFragment, serialize } from 'parse5';
 import sanitizeHtml from 'sanitize-html';
 import {prepareImage} from './images.mjs';
 import {mediaAlt} from '../../cms/studio/public/media-copy.js';
+import {normalizeTextColor,inlineTextColor} from '../../cms/studio/public/text-color.js';
 
 export const cleanCopy = value => sanitizeHtml(String(value), {
-  allowedTags: ['br', 'em', 'strong', 'span'], allowedAttributes: {},
+  allowedTags: ['br', 'em', 'strong', 'span'],
+  allowedAttributes: {span:['style'],em:['style'],strong:['style']},
+  allowedStyles: {'*':{color:[/^#[0-9a-f]{6}$/]}},
+  transformTags: Object.fromEntries(['span','em','strong','font'].map(tag=>[tag,(_tag,attributes)=>{
+    const color=inlineTextColor(attributes.style)||(tag==='font'?normalizeTextColor(attributes.color):null);
+    return {tagName:tag==='font'?'span':tag,attribs:color?{style:'color:'+color}:{}};
+  }])),
 });
 export const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const canonical = html => serialize(parseFragment(html));
