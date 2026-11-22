@@ -23,6 +23,8 @@ async function fixture(t, options = {}) {
       return result([row]);
     }
     if(path==='/items/section_media')return result([]);
+    if(path==='/items/section_media/'+id)return result({id,placement:'logo',image:{id,type:'image/png'},alt_es:'Logo',alt_en:'Logo',alt_fr:'Logo',status:'published',...(request.method==='PATCH'?JSON.parse(request.body):{})});
+    if(path==='/files/'+id)return result({id,type:'image/png',filesize:1000});
     if(path==='/folders')return result([]);
     if(new URL(url).origin==='https://www.eonovastudios.com')return new Response('<!doctype html><html><head></head><body><main>Preview</main><script>window.forbidden=true</script></body></html>',{headers:{'Content-Type':'text/html'}});
     if(path==='/auth/logout')return new Response(null,{status:204});
@@ -126,4 +128,12 @@ test('account password changes reject injected targets, short passwords and inco
  assert.equal(calls.filter(call=>call.path==='/users/'+id&&call.method==='PATCH').length,0);
  for(let i=0;i<4;i++)assert.equal((await change({currentPassword:'wrong-password',newPassword:'new-private-password'})).status,400);
  assert.equal((await change({currentPassword:'wrong-password',newPassword:'new-private-password'})).status,429);
+});
+
+test('logo size is persisted as a bounded number and malformed sizes are rejected before writing',async t=>{
+ const {request,login,calls}=await fixture(t);const cookie=(await login()).headers.get('set-cookie').split(';')[0];
+ const save=logo_size=>request('/api/media/'+id,{method:'PATCH',headers:{Cookie:cookie},body:JSON.stringify({logo_size})});
+ for(const size of [39,121,80.5,'100',null])assert.equal((await save(size)).status,400);
+ assert.equal(calls.filter(call=>call.method==='PATCH').length,0);
+ for(const size of [40,80,120]){const response=await save(size);assert.equal(response.status,200);assert.equal((await response.json()).logo_size,size);}
 });

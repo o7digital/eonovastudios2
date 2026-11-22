@@ -70,7 +70,7 @@ export async function loadCms({ url, token, fetcher = fetch, output = pathToFile
   }
   const [copy, images] = await Promise.all([
     api('/items/site_texts?filter[status][_eq]=published&fields=source,es,en,fr&limit=-1&sort=sort'),
-    api('/items/section_media?filter[status][_eq]=published&fields=placement,image.id,image.type,image.modified_on,image.uploaded_on,alt_es,alt_en,alt_fr,position,fit&limit=-1'),
+    api('/items/section_media?filter[status][_eq]=published&fields=placement,image.id,image.type,image.modified_on,image.uploaded_on,alt_es,alt_en,alt_fr,position,fit,logo_size&limit=-1'),
   ]);
   if (!Array.isArray(copy.data) || !copy.data.length || !Array.isArray(images.data)) throw new Error('CMS content is missing.');
   const rows = validateRows(copy.data);
@@ -84,6 +84,7 @@ export async function loadCms({ url, token, fetcher = fetch, output = pathToFile
     if (!extension || (row.placement === 'logo' && row.image.type.startsWith('video/'))) throw new Error('Use an image for the logo and JPG, PNG, WebP, AVIF, GIF, MP4 or WebM for media.');
     if (row.position && !/^(100|[0-9]{1,2})% (100|[0-9]{1,2})%$/.test(row.position)) throw new Error('Invalid media position.');
     if (row.fit && !['cover', 'contain'].includes(row.fit)) throw new Error('Invalid media fit.');
+    if (row.logo_size != null && (!Number.isInteger(row.logo_size) || row.logo_size < 40 || row.logo_size > 120)) throw new Error('Invalid logo size.');
     const response = await fetcher(new URL(`/assets/${encodeURIComponent(row.image.id)}`, base), { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(60000) });
     if (!response.ok) throw new Error(`CMS image unavailable (${response.status}).`);
     const bytes = Buffer.from(await response.arrayBuffer());
@@ -94,7 +95,7 @@ export async function loadCms({ url, token, fetcher = fetch, output = pathToFile
       const name = `${createHash('sha256').update(bytes).digest('hex').slice(0, 24)}.${extension}`;
       await writeFile(new URL(name, output), bytes);asset={type:row.image.type,src:`/_cms/${name}`};
     }
-    media[row.placement] = { ...asset, position: row.position || '50% 50%', fit: row.fit || 'cover', alt: { es: row.alt_es, en: row.alt_en, fr: row.alt_fr } };
+    media[row.placement] = { ...asset, ...(row.placement === 'logo' ? {size:row.logo_size ?? 80} : {}), position: row.position || '50% 50%', fit: row.fit || 'cover', alt: { es: row.alt_es, en: row.alt_en, fr: row.alt_fr } };
   }
   return { rows, media };
 }

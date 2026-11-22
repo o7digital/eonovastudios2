@@ -5,5 +5,5 @@ const {lang = 'es'} = Astro.props;
 const {media} = await getCms();
 ---
 <a class="brand" href={home(lang) + '#inicio'} aria-label="EON NOVA Studios">
-  {media.logo ? <img class="brand-logo" src={media.logo.src} srcset={media.logo.srcset} sizes={media.logo.srcset ? '190px' : undefined} decoding="async" alt={media.logo.alt[lang]} width="180" height="56"/> : <><span class="brand-icon">✳</span><span>EON NOVA<small>STUDIOS</small></span></>}
+  {media.logo ? <img class="brand-logo" src={media.logo.src} srcset={media.logo.srcset} sizes={media.logo.srcset ? '(max-width:760px) 160px, 280px' : undefined} decoding="async" alt={media.logo.alt[lang]} width={media.logo.width} height={media.logo.height}/> : <><span class="brand-icon">✳</span><span>EON NOVA<small>STUDIOS</small></span></>}
 </a>

@@ -3,6 +3,7 @@ import '../styles/global.css';
 import Localized from '../components/Localized.astro';
 import {pageSeo, isIndexable, schemaJson} from '../lib/seo.mjs';
 import {getCms} from '../lib/cms.mjs';
+import {logoCss,logoStyle} from '../../cms/studio/public/logo.js';
 import OliviaAI from '../components/OliviaAI.astro';
 import '@fontsource-variable/dm-sans';
 import '@fontsource-variable/space-grotesk';
@@ -12,8 +13,9 @@ const seo = pageSeo({lang,legal,pageTitle,logo:media.logo?.src});
 const production = isIndexable();
 ---
 <!doctype html>
-<html lang={lang}>
+<html lang={lang} style={media.logo ? logoStyle(media.logo.size) : undefined}>
 <head>
+<style is:inline set:html={logoCss} />
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="theme-color" content="#101010" />

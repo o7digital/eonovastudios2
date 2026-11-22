@@ -34,6 +34,7 @@ const definitions = {
     field('image', 'uuid', { interface: 'file', special: ['file'], required: true, options: { folder }, note: 'Images : 25 Mo. Vidéos MP4/WebM : 100 Mo. Logo : image uniquement.' }),
     field('position', 'string', {note:'Cadrage horizontal et vertical, en pourcentage.'}, {default_value:'50% 50%'}),
     field('fit','string',{interface:'select-dropdown',options:{choices:[{text:'Remplir',value:'cover'},{text:'Image entière',value:'contain'}]}},{default_value:'cover'}),
+    field('logo_size','integer',{interface:'input',note:'Altura del logo en píxeles (40 a 120). El sitio elimina los márgenes transparentes sin modificar el original.'},{default_value:80}),
     ...['es','en','fr'].map(lang => field(`alt_${lang}`, 'string', { required: true, translations: translations(`Description accessible · ${lang.toUpperCase()}`) }, { max_length: 2000 })),
   ] },
 };

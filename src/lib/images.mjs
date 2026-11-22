@@ -1,21 +1,29 @@
 import {createHash} from 'node:crypto';
 import {writeFile} from 'node:fs/promises';
 import sharp from 'sharp';
+import {logoBounds} from '../../cms/studio/public/logo.js';
 
 // Resize without cropping: the site's existing CSS and saved focal point control presentation.
 export async function prepareImage(bytes,{output,placement,extension}) {
-  const image=sharp(bytes,{limitInputPixels:64*1024*1024});
+  let image=sharp(bytes,{limitInputPixels:64*1024*1024});
   const metadata=await image.metadata();
   const rotated=[5,6,7,8].includes(metadata.orientation);
-  const naturalWidth=rotated?metadata.height:metadata.width;
+  let naturalWidth=rotated?metadata.height:metadata.width;
   const naturalHeight=rotated?metadata.width:metadata.height;
   if(!naturalWidth||!naturalHeight)throw new Error('Cannot read website image dimensions.');
-  const hash=createHash('sha256').update('eon-responsive-v1:').update(bytes).digest('hex').slice(0,24);
+  const logo=placement==='logo';
+  const hash=createHash('sha256').update(logo?'eon-logo-trim-v2:':'eon-responsive-v1:').update(bytes).digest('hex').slice(0,24);
   if((metadata.pages||1)>1){
     const name=`${hash}.${extension}`;await writeFile(new URL(name,output),bytes);
     return {src:`/_cms/${name}`,type:`image/${extension==='jpg'?'jpeg':extension}`,width:metadata.width,height:metadata.pageHeight||metadata.height};
   }
-  const logo=placement==='logo',maximum=Math.min(naturalWidth,logo?720:2560);
+  if(logo){
+    const {data,info}=await image.clone().rotate().toColourspace('srgb').ensureAlpha().raw().toBuffer({resolveWithObject:true});
+    const bounds=logoBounds(data,info.width,info.height);
+    image=sharp(data,{raw:{width:info.width,height:info.height,channels:4}}).extract(bounds);
+    naturalWidth=bounds.width;
+  }
+  const maximum=Math.min(naturalWidth,logo?720:2560);
   const widths=[...new Set([...(logo?[180,360,720]:[320,640,960,1440,1920,2560]).filter(width=>width<maximum),maximum])];
   const variants=[];
   for(const width of widths){

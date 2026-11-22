@@ -6,6 +6,7 @@ import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import sharp from 'sharp';
 import {prepareImage} from '../src/lib/images.mjs';
+import {logoBounds,logoStyle} from '../cms/studio/public/logo.js';
 
 async function output(t){const path=await mkdtemp(join(tmpdir(),'eon-image-'));t.after(()=>rm(path,{recursive:true,force:true}));return {path,url:pathToFileURL(path+'/')};}
 test('photos become responsive WebP and AVIF while retaining aspect ratio and the original input',async t=>{
@@ -35,4 +36,19 @@ test('phone-photo orientation is applied before dimensions and responsive varian
   assert.equal(asset.width,40);assert.equal(asset.height,80);
   const metadata=await sharp(await readFile(join(folder.path,asset.src.split('/').at(-1)))).metadata();
   assert.equal(metadata.width,40);assert.equal(metadata.height,80);assert.equal(metadata.orientation,undefined);
+});
+
+test('logo padding is removed with identical browser/build bounds while every visible pixel and the original remain intact',async t=>{
+  const folder=await output(t);
+  const artwork=await sharp({create:{width:100,height:80,channels:4,background:'#a6ed74'}}).png().toBuffer();
+  const bytes=await sharp({create:{width:600,height:400,channels:4,background:{r:0,g:0,b:0,alpha:0}}}).composite([{input:artwork,left:250,top:160}]).png().toBuffer();
+  const original=Buffer.from(bytes),raw=await sharp(bytes).ensureAlpha().raw().toBuffer();
+  assert.deepEqual(logoBounds(raw,600,400),{left:250,top:160,width:100,height:80});
+  const asset=await prepareImage(bytes,{output:folder.url,placement:'logo',extension:'png'});
+  assert.equal(asset.width,100);assert.equal(asset.height,80);
+  const result=await readFile(join(folder.path,asset.src.split('/').at(-1)));
+  assert.ok((await sharp(result).ensureAlpha().raw().toBuffer()).equals(await sharp(artwork).ensureAlpha().raw().toBuffer()));
+  assert.deepEqual(bytes,original);
+  assert.match(logoStyle(120),/height:120px/);assert.match(logoStyle(120),/mobile-height:84px/);
+  assert.match(logoStyle('bad'),/height:80px/);
 });

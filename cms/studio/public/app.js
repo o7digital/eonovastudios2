@@ -1,4 +1,5 @@
-import {visualPageMarkup,mountVisualPage} from './visual-page.js?v=wysiwyg-4';
+import {visualPageMarkup,mountVisualPage} from './visual-page.js?v=logo-1';
+import {logoSize,prepareLogoPreview} from './logo.js?v=logo-1';
 import {mountEditors} from './editor.js?v=visual-2';
 import {createWorkspaceUI,workspaceSections} from './workspace-ui.js?v=es-mx-1';
 const $ = selector => document.querySelector(selector);
@@ -74,7 +75,7 @@ function editor(){
     `<div class="editor-toolbar"><div class="language-tabs" role="group" aria-label="Idioma del contenido">${Object.entries(languages).map(([key,value])=>`<button class="language-tab ${state.lang===key?'active':''}" data-language="${key}" aria-pressed="${state.lang===key}">${value.name}<small>${value.label}</small></button>`).join('')}</div><label class="sr-only" for="text-search">Buscar texto</label><input id="text-search" class="search-box" type="search" placeholder="Buscar en esta sección…" value="${esc(state.filter)}"></div>`+
     `<div class="field-list">${currentRows().map(editableCard).join('')}</div><p id="search-empty" class="muted" hidden>No hay textos que coincidan con tu búsqueda.</p>${saveBar()}`;
 }
-function mediaPage(){return pageHeading('TU UNIVERSO VISUAL','Tu identidad. En cada frame.','Tu logo, tus fotos y tus videos. Un espacio para darles vida y elegir dónde aparecen.')+
+function mediaPage(){return pageHeading('TU UNIVERSO VISUAL','Tu identidad. En cada frame.','Tu logo, tus fotos y tus videos. Un espacio para darles vida y elegir dónde aparecen.',`<button class="button primary" data-publish ${!state.publishReady||!state.canEdit?'disabled':''}>Publicar mi sitio ↗</button>`)+
   `<div class="editor-intro">${icon('info')}<span>Sube archivos o reutiliza los de tu biblioteca. Ajusta el encuadre sin modificar el original. Imágenes: 25 MB. Videos MP4 y WebM: 100 MB.</span></div>`+
   `<div class="media-grid">${Object.entries(placementLabels).map(([placement,label],index)=>{
     const row=state.media.find(row=>row.placement===placement),shown=row && row.status==='published';
@@ -174,7 +175,8 @@ function openMedia(placement){
   $('#media-dialog-title').textContent=row?'Editar medio':'Agregar foto o video';$('#media-form').reset();$('#library-grid').hidden=true;$('#media-placement').value=placement;$('#media-placement').disabled=Boolean(row);
   for(const lang of Object.keys(languages))$(`#alt-${lang}`).value=row?.[`alt_${lang}`] || '';
   $('#media-status').value=row?.status==='archived'?'published':row?.status || 'published';
-  $('#upload-label').textContent=row?.image?.filename_download || 'Elegir foto o video';$('#media-error').hidden=true;$('#media-preview').hidden=true;$('#video-preview').hidden=true;
+  $('#upload-label').textContent=row?.image?.filename_download || 'Elegir foto o video';$('#media-error').hidden=true;$('#media-preview').hidden=true;$('#media-image-shell').hidden=true;$('#video-preview').hidden=true;
+  $('#logo-size').value=logoSize(row?.logo_size);configureMediaFields();
   if(row?.image?.id)showMediaPreview('/api/image/'+row.image.id,row.image.type);
   const [x,y]=(row?.position||'50% 50%').split(' ').map(Number.parseFloat);$('#focal-x').value=x;$('#focal-y').value=y;$('#media-fit').value=placement==='logo'?'contain':row?.fit||'cover';updateFraming();
   $('#media-file').accept=placement==='logo'?'image/jpeg,image/png,image/webp,image/avif,image/gif':'image/jpeg,image/png,image/webp,image/avif,image/gif,video/mp4,video/webm';
@@ -184,12 +186,23 @@ function openMedia(placement){
 async function closeMedia(){if($('#save-media').disabled)return;if(state.mediaEdit?.dirty&&!await confirmDialog('¿Cerrar sin guardar?','Los cambios de este medio todavía no están guardados.'))return;$('#video-preview').pause();$('#media-dialog').close();state.mediaEdit=null;if(previewBlob){URL.revokeObjectURL(previewBlob);previewBlob=null;}}
 function showMediaPreview(src,type){
   const video=type?.startsWith('video/');$('#media-preview').hidden=video;$('#video-preview').hidden=!video;$('#video-preview').pause();
-  const preview=$(video?'#video-preview':'#media-preview');preview.src=src;
+  const preview=$(video?'#video-preview':'#media-preview');preview.src=src;preview.dataset.originalSrc=src;$('#media-image-shell').hidden=video;
+  if(!video&&$('#media-placement').value==='logo'){
+    const edit=state.mediaEdit;
+    prepareLogoPreview(src).then(logo=>{if(state.mediaEdit===edit&&$('#media-placement').value==='logo'&&preview.dataset.originalSrc===src){preview.src=logo.src;updateFraming();}}).catch(()=>{if(state.mediaEdit===edit){$('#media-error').textContent='No se pudo preparar el logo. Intenta con otra imagen.';$('#media-error').hidden=false;}});
+  }
+}
+function configureMediaFields(){
+  const logo=$('#media-placement').value==='logo';
+  $('#logo-controls').hidden=!logo;$('#media-framing').hidden=logo;$('#media-image-shell').classList.toggle('logo-preview-shell',logo);updateFraming();
 }
 function updateFraming(){
+  const logo=$('#media-placement').value==='logo',preview=$('#media-preview');
+  preview.style.height=logo?logoSize($('#logo-size').value)+'px':'';preview.style.width=logo?'auto':'';preview.style.maxWidth=logo?'280px':'';
+  $('#logo-size-value').textContent=logoSize($('#logo-size').value)+' px';
   for(const preview of [$('#media-preview'),$('#video-preview')]){preview.style.objectPosition=`${$('#focal-x').value}% ${$('#focal-y').value}%`;preview.style.objectFit=$('#media-fit').value;}
 }
-for(const id of ['focal-x','focal-y','media-fit'])$('#'+id).addEventListener('input',updateFraming);
+for(const id of ['focal-x','focal-y','media-fit','logo-size'])$('#'+id).addEventListener('input',updateFraming);
 function uploadMedia(file,button){
   return new Promise((resolve,reject)=>{
     const xhr=new XMLHttpRequest();xhr.open('POST','/api/upload');xhr.setRequestHeader('Content-Type',file.type);xhr.setRequestHeader('X-File-Name',encodeURIComponent(file.name));xhr.timeout=240000;
@@ -198,6 +211,7 @@ function uploadMedia(file,button){
     xhr.onerror=()=>reject(new Error('Revisa tu conexión e intenta de nuevo.'));xhr.ontimeout=()=>reject(new Error('La carga tardó demasiado. Intenta con un archivo más pequeño.'));xhr.send(file);
   });
 }
+$('#media-placement').addEventListener('change',()=>{configureMediaFields();const src=$('#media-preview').dataset.originalSrc;if(src&&!$('#media-preview').hidden)showMediaPreview(src,'image/png');});
 $('#choose-library').addEventListener('click',async()=>{
   const grid=$('#library-grid');grid.hidden=!grid.hidden;if(grid.hidden)return;grid.innerHTML='<p>Cargando tu biblioteca…</p>';
   try{const files=(await api('/api/library')).filter(file=>['image/jpeg','image/png','image/webp','image/avif','image/gif','video/mp4','video/webm'].includes(file.type)&&($('#media-placement').value!=='logo'||!file.type.startsWith('video/')));
@@ -218,9 +232,9 @@ $('#media-form').addEventListener('submit',async event=>{
   button.disabled=true;button.textContent='Guardando…';$('#media-error').hidden=true;
   try{
     if(file&&!edit.fileId){const uploaded=await uploadMedia(file,button);edit.fileId=uploaded.id;}
-    const input={placement:$('#media-placement').value,image:edit.fileId,status:$('#media-status').value,position:`${$('#focal-x').value}% ${$('#focal-y').value}%`,fit:$('#media-fit').value,...Object.fromEntries(Object.keys(languages).map(lang=>['alt_'+lang,$('#alt-'+lang).value.trim()]))};
+    const input={...($('#media-placement').value==='logo'?{logo_size:Number($('#logo-size').value)}:{}),placement:$('#media-placement').value,image:edit.fileId,status:$('#media-status').value,position:`${$('#focal-x').value}% ${$('#focal-y').value}%`,fit:$('#media-fit').value,...Object.fromEntries(Object.keys(languages).map(lang=>['alt_'+lang,$('#alt-'+lang).value.trim()]))};
     const result=await api('/api/media'+(edit.id?'/'+edit.id:''),{method:edit.id?'PATCH':'POST',body:JSON.stringify(input)});
-    state.media=state.media.filter(row=>row.id!==result.id);state.media.push(result);button.disabled=false;edit.dirty=false;closeMedia();render();toast('Tu medio está guardado.');
+    state.media=state.media.filter(row=>row.id!==result.id);state.media.push(result);button.disabled=false;edit.dirty=false;closeMedia();render();toast('Medio guardado. Pulsa Publicar mi sitio para actualizar la página pública.');
   }catch(error){$('#media-error').textContent=error.message;$('#media-error').hidden=false;}finally{button.disabled=false;button.innerHTML='Guardar medio';}
 });
 async function archiveMedia(id){

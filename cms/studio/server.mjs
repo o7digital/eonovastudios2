@@ -13,7 +13,7 @@ const imageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'imag
 const mediaTypes = [...imageTypes, 'video/mp4', 'video/webm'];
 const statuses = ['draft', 'published', 'archived'];
 const textFields = 'id,label,section,source,es,en,fr,status,sort';
-const mediaFields = 'id,placement,image.id,image.type,image.filename_download,alt_es,alt_en,alt_fr,status,sort,position,fit';
+const mediaFields = 'id,placement,image.id,image.type,image.filename_download,alt_es,alt_en,alt_fr,status,sort,position,fit,logo_size';
 class ApiError extends Error { constructor(status, message) { super(message); this.status = status; } }
 
 export function createStudioServer(options = {}) {
@@ -205,7 +205,10 @@ export function createStudioServer(options = {}) {
       }
       const mediaId = path.match(/^\/api\/media\/([a-f\d-]{36})$/i)?.[1];
       if ((path === '/api/media' && req.method === 'POST') || (mediaId && uuid.test(mediaId) && req.method === 'PATCH')) {
-        const input = await jsonBody(req); validate(input, ['placement', 'image', 'status', 'alt_es', 'alt_en', 'alt_fr', 'position', 'fit']);
+        const input = await jsonBody(req);
+        const {logo_size, ...fields} = input;
+        validate(fields, ['placement', 'image', 'status', 'alt_es', 'alt_en', 'alt_fr', 'position', 'fit']);
+        if (logo_size !== undefined && (!Number.isInteger(logo_size) || logo_size < 40 || logo_size > 120)) throw new ApiError(400, 'Elige una altura de logo entre 40 y 120 px.');
         if ((input.placement !== undefined && !placements.includes(input.placement)) || (input.image !== undefined && !uuid.test(input.image))) throw new ApiError(400, 'Elige una ubicación y una imagen válidas.');
         if (input.position !== undefined && !/^(100|[0-9]{1,2})% (100|[0-9]{1,2})%$/.test(input.position)) throw new ApiError(400, 'Elige un encuadre válido.');
         if (input.fit !== undefined && !['cover', 'contain'].includes(input.fit)) throw new ApiError(400, 'Elige un ajuste válido.');
@@ -258,7 +261,7 @@ export function createStudioServer(options = {}) {
       throw new ApiError(404, 'Esta acción no existe.');
     }
     if (req.method !== 'GET' && req.method !== 'HEAD') throw new ApiError(405, 'Método no permitido.');
-    const files = { '/': ['index.html', 'text/html; charset=utf-8'], '/visual-page.js': ['visual-page.js', 'text/javascript; charset=utf-8'], '/editor.js': ['editor.js', 'text/javascript; charset=utf-8'], '/app.js': ['app.js', 'text/javascript; charset=utf-8'], '/workspace-ui.js':['workspace-ui.js','text/javascript; charset=utf-8'], '/social-callback.html':['social-callback.html','text/html; charset=utf-8'], '/social-callback.js':['social-callback.js','text/javascript; charset=utf-8'], '/style.css': ['style.css', 'text/css; charset=utf-8'], '/favicon.svg': ['favicon.svg', 'image/svg+xml'], '/dm-sans.woff2': ['dm-sans.woff2', 'font/woff2'], '/space-grotesk.woff2': ['space-grotesk.woff2', 'font/woff2'] };
+    const files = { '/': ['index.html', 'text/html; charset=utf-8'], '/visual-page.js': ['visual-page.js', 'text/javascript; charset=utf-8'], '/editor.js': ['editor.js', 'text/javascript; charset=utf-8'], '/logo.js': ['logo.js', 'text/javascript; charset=utf-8'], '/app.js': ['app.js', 'text/javascript; charset=utf-8'], '/workspace-ui.js':['workspace-ui.js','text/javascript; charset=utf-8'], '/social-callback.html':['social-callback.html','text/html; charset=utf-8'], '/social-callback.js':['social-callback.js','text/javascript; charset=utf-8'], '/style.css': ['style.css', 'text/css; charset=utf-8'], '/favicon.svg': ['favicon.svg', 'image/svg+xml'], '/dm-sans.woff2': ['dm-sans.woff2', 'font/woff2'], '/space-grotesk.woff2': ['space-grotesk.woff2', 'font/woff2'] };
     if(path==='/social-callback.html')res.setHeader('Referrer-Policy','no-referrer');
     if (!files[path]) throw new ApiError(404, 'Página no encontrada.');
     const [file, mime] = files[path];
