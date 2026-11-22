@@ -1,4 +1,4 @@
-import {visualPageMarkup,mountVisualPage} from './visual-page.js?v=wysiwyg-3';
+import {visualPageMarkup,mountVisualPage} from './visual-page.js?v=wysiwyg-4';
 import {mountEditors} from './editor.js?v=visual-2';
 import {createWorkspaceUI,workspaceSections} from './workspace-ui.js?v=es-mx-1';
 const $ = selector => document.querySelector(selector);

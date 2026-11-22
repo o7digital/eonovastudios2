@@ -74,6 +74,11 @@ test('Firefox: the actual site CSS permits clicking, editing, saving and reloadi
     await page.locator('.visual-page-status').filter({hasText:'textos editables'}).waitFor();
     assert.equal(await page.frameLocator('iframe').locator('h1').textContent(),text);
   }
+  await page.locator('[data-device="1440"]').click();
+  await page.frameLocator('iframe').locator('[data-eon-placement="hero"]').click({position:{x:700,y:200}});
+  await page.locator('#media-dialog[open]').waitFor();
+  assert.equal(await page.locator('#media-placement').inputValue(),'hero');
+  await page.locator('#cancel-media').click();
   await page.locator('[data-publish]').click();
   await page.locator('#confirm-yes').click();
   await page.locator('#toast').filter({hasText:'Publicación solicitada'}).waitFor();
