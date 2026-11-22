@@ -1,5 +1,5 @@
-import {visualPageMarkup,mountVisualPage} from './visual-page.js?v=media-3';
-import {logoSize,prepareLogoPreview} from './logo.js?v=logo-1';
+import {visualPageMarkup,mountVisualPage} from './visual-page.js?v=brand-4';
+import {logoSize,logoImageUrl,prepareLogoPreview} from './logo.js?v=brand-4';
 import {mediaAlt,mediaLabels} from './media-copy.js?v=studio-2';
 import {mountEditors} from './editor.js?v=color-1';
 import {colorToolsMarkup} from './text-color.js?v=color-1';
@@ -33,6 +33,23 @@ const statusLabel = {published:'Incluir en el sitio',draft:'Borrador',archived:'
 const state = {texts:[],media:[],drafts:new Map(),route:'overview',lang:'es',filter:'',busy:false,profile:{},publishReady:false,canEdit:false,mediaEdit:null,mediaDrafts:new Map(),mediaUploading:false,visualPrefs:{width:1440,mode:'edit'}};
 const workspace=createWorkspaceUI({api,toast,confirmDialog,isCurrent:route=>state.route===route});
 let toastTimer, previewBlob,visualUI,disposeFieldEditors;
+let studioLogoKey='',studioLogoVersion=0;
+function setBrandImage(image,src,custom){
+  image.closest('.wordmark').toggleAttribute('data-custom-logo',custom);
+  if(image.getAttribute('src')!==src)image.src=src;
+}
+async function syncPublishedLogo(){
+  try{const {logo}=await api('/branding');setBrandImage($('#login-view [data-studio-logo]'),logo||'/favicon.svg',Boolean(logo));}catch{}
+}
+async function syncStudioLogo(){
+  $('#edit-studio-logo').disabled=!state.canEdit||state.busy||state.mediaUploading;
+  const row=mediaOf('logo'),image=$('#sidebar [data-studio-logo]'),active=row?.status==='published'&&row.image?.id;
+  const source=active?logoImageUrl(row.image):'/favicon.svg';if(source===studioLogoKey)return;
+  studioLogoKey=source;const version=++studioLogoVersion;
+  if(!active){setBrandImage(image,source,false);return;}
+  try{const logo=await prepareLogoPreview(location.origin+source);if(version===studioLogoVersion)setBrandImage(image,logo.src,true);}
+  catch{if(version===studioLogoVersion){studioLogoKey='';setBrandImage(image,'/favicon.svg',false);}}
+}
 function toast(message, error = false) { const node=$('#toast');node.textContent=message;node.classList.toggle('error',error);node.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>node.hidden=true,error?8500:4500); }
 async function api(path, options = {}) {
   const response=await fetch(path,{credentials:'same-origin',...options,headers:{...(options.body && !(options.body instanceof Blob)?{'Content-Type':'application/json'}:{}),...options.headers}});
@@ -40,7 +57,7 @@ async function api(path, options = {}) {
   if(!response.ok){if(response.status===401 && path!=='/api/login')showLogin();throw new Error(result.error || 'No se pudo completar esta acción.');}
   return result;
 }
-function showLogin(){ disposeFieldEditors?.();$('#login-view').hidden=false;$('#studio-view').hidden=true;state.drafts.clear();state.mediaDrafts.clear();visualUI?.destroy();visualUI=null;workspace.reset();state.profile={};state.texts=[];state.media=[];$('#password').value=''; }
+function showLogin(){ disposeFieldEditors?.();$('#login-view').hidden=false;$('#studio-view').hidden=true;state.drafts.clear();state.mediaDrafts.clear();visualUI?.destroy();visualUI=null;workspace.reset();state.profile={};state.texts=[];state.media=[];studioLogoKey='';studioLogoVersion++;$('#password').value='';syncPublishedLogo(); }
 function nav(){
   const links=[{id:'overview',name:'Vista general',icon:'home'},{id:'visual',name:'Editar mi página',icon:'hero'},...sections.map(s=>({...s,icon:s.id})),{id:'media',name:'Fotos, videos y logo',icon:'media'},{id:'account',name:'Mi cuenta',icon:'interface'}];
   $('#main-nav').innerHTML=links.map(s=>`${s.id==='media'?'<div class="nav-separator"></div>':''}<a class="nav-item ${state.route===s.id?'active':''}" href="#${s.id}" ${state.route===s.id?'aria-current="page"':''}>${icon(s.icon)}<span>${s.name}</span>${['overview','account'].includes(s.id)?'':`<small class="nav-count">${s.id==='visual'?state.texts.length:s.id==='media'?state.media.filter(row=>row.status==='published').length:state.texts.filter(row=>row.section===s.id).length}</small>`}</a>`).join('');
@@ -95,7 +112,7 @@ function mediaPage(){return pageHeading('TU UNIVERSO VISUAL','Tu identidad. En c
   `<div class="editor-intro">${icon('info')}<span>Sube archivos o reutiliza los de tu biblioteca. Ajusta el encuadre sin modificar el original. Imágenes: 25 MB. Videos MP4 y WebM: 100 MB.</span></div>`+
   `<div class="media-grid">${Object.entries(placementLabels).map(([placement,label],index)=>{
     const row=mediaOf(placement),shown=row && row.status==='published';
-    return `<article class="media-card"><div class="media-visual">${row?.image?.id?`<${row.image.type?.startsWith("video/")?'video controls preload="metadata"':'img loading="lazy"'} src="/api/image/${row.image.id}" alt="${esc(row.alt_es)}">${row.image.type?.startsWith("video/")?'</video>':''}`:'<span class="media-default">✳</span>'}${!shown?'<span class="original-label">DISEÑO ORIGINAL ACTIVO</span>':''}</div><div class="media-card-body"><div class="media-card-heading"><h3>${label}</h3><span class="eyebrow">0${index+1}</span></div><p>${row?`${esc(row.image?.filename_download || 'Image')} · ${esc(statusLabel[row.status] || row.status)}`:'Agrega tu imagen o conserva la creación original.'}</p><div class="media-card-actions"><button class="button ${row?'secondary':'primary'}" data-edit-media="${placement}" ${!state.canEdit?'disabled':''}>${row?'Editar medio':placement==='logo'?'Agregar mi logo':'Agregar foto o video'} <span>↗</span></button>${row && row.status!=='archived'?`<button class="button secondary" data-archive-media="${row.id}" ${!state.canEdit?'disabled':''}>Restaurar original</button>`:''}</div></div></article>`;
+    return `<article class="media-card"><div class="media-visual">${row?.image?.id?`<${row.image.type?.startsWith("video/")?'video controls preload="metadata"':'img loading="lazy"'} src="${esc(logoImageUrl(row.image))}" alt="${esc(row.alt_es)}">${row.image.type?.startsWith("video/")?'</video>':''}`:'<span class="media-default">✳</span>'}${!shown?'<span class="original-label">DISEÑO ORIGINAL ACTIVO</span>':''}</div><div class="media-card-body"><div class="media-card-heading"><h3>${label}</h3><span class="eyebrow">0${index+1}</span></div><p>${row?`${esc(row.image?.filename_download || 'Image')} · ${esc(statusLabel[row.status] || row.status)}`:'Agrega tu imagen o conserva la creación original.'}</p><div class="media-card-actions"><button class="button ${row?'secondary':'primary'}" data-edit-media="${placement}" ${!state.canEdit?'disabled':''}>${row?'Editar medio':placement==='logo'?'Agregar mi logo':'Agregar foto o video'} <span>↗</span></button>${row && row.status!=='archived'?`<button class="button secondary" data-archive-media="${row.id}" ${!state.canEdit?'disabled':''}>Restaurar original</button>`:''}</div></div></article>`;
   }).join('')}</div>`+saveBar();
 }
 function visualPage(){return pageHeading('MI SITIO','Editar mi página','Haz clic en un texto, una foto o el logo. Cambia el contenido sobre el diseño real.')+visualPageMarkup(state.lang);}
@@ -113,6 +130,7 @@ async function changePassword(event){
  finally{button.disabled=false;button.textContent='Guardar nueva contraseña';}
 }
 function render(){
+  syncStudioLogo();
   disposeFieldEditors?.();visualUI?.destroy();visualUI=null;nav();$('#breadcrumb').textContent=state.route==='account'?'Mi cuenta':state.route==='visual'?'Editar mi página':state.route==='overview'?'Vista general':state.route==='media'?'Fotos, videos y logo':(sections.find(s=>s.id===state.route)||workspaceSections.find(s=>s.id===state.route)).name;
   if(workspaceSections.some(s=>s.id===state.route)){workspace.open(state.route);return;}
   $('#content').innerHTML=state.route==='account'?accountPage():state.route==='visual'?visualPage():state.route==='overview'?overview():state.route==='media'?mediaPage():editor();
@@ -135,6 +153,7 @@ function recordDraft(id,field,value){
   if(Object.keys(draft).length)state.drafts.set(id,draft);else state.drafts.delete(id);
 }
 function updatePending(){
+  syncStudioLogo();
   const editable=state.canEdit&&!state.busy&&!state.mediaUploading;
   $('#content').querySelectorAll('[data-rich-text]').forEach(field=>field.contentEditable=String(editable));
   const doc=$('#content iframe')?.contentDocument;doc?.querySelectorAll('[data-eon-text]').forEach(field=>field.contentEditable=String(editable));
@@ -196,7 +215,7 @@ function openMedia(placement){
   $('#media-status').value=row?.status==='archived'?'published':row?.status || 'published';
   $('#upload-label').textContent=row?.image?.filename_download || 'Elegir foto o video';$('#media-error').hidden=true;$('#media-preview').hidden=true;$('#media-image-shell').hidden=true;$('#video-preview').hidden=true;
   $('#logo-size').value=logoSize(row?.logo_size);configureMediaFields();
-  if(row?.image?.id)showMediaPreview('/api/image/'+row.image.id,row.image.type);
+  if(row?.image?.id)showMediaPreview(logoImageUrl(row.image),row.image.type);
   const [x,y]=(row?.position||'50% 50%').split(' ').map(Number.parseFloat);$('#focal-x').value=x;$('#focal-y').value=y;$('#media-fit').value=placement==='logo'?'contain':row?.fit||'cover';updateFraming();
   $('#media-file').accept=placement==='logo'?'image/jpeg,image/png,image/webp,image/avif,image/gif':'image/jpeg,image/png,image/webp,image/avif,image/gif,video/mp4,video/webm';
   for(const option of $('#media-placement').options)option.disabled=option.value!==placement&&state.media.some(row=>row.placement===option.value);
@@ -261,6 +280,9 @@ async function archiveMedia(id){
   try{const row=await api('/api/media/'+id,{method:'PATCH',body:JSON.stringify({status:'archived'})});state.media=state.media.map(item=>item.id===id?row:item);render();toast('La imagen original se restaurará en la próxima publicación del sitio.');}catch(error){toast(error.message,true);}
 }
 $('#close-media').addEventListener('click',closeMedia);$('#cancel-media').addEventListener('click',closeMedia);
+$('#edit-studio-logo').addEventListener('click',()=>{if(state.canEdit&&!state.busy&&!state.mediaUploading){closeMenu();openMedia('logo');}});
+for(const image of document.querySelectorAll('[data-studio-logo]'))image.addEventListener('error',()=>setBrandImage(image,'/favicon.svg',false));
+syncPublishedLogo();
 $('#media-dialog').addEventListener('cancel',event=>{event.preventDefault();closeMedia();});
 $('#menu-toggle').addEventListener('click',()=>$('#sidebar').classList.contains('open')?closeMenu():openMenu());$('#sidebar-shade').addEventListener('click',closeMenu);
 $('#main-nav').addEventListener('click',event=>{if(event.target.closest('a'))closeMenu();});

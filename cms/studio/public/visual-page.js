@@ -1,6 +1,6 @@
 import {cleanInline,renderInline,mountEditors} from './editor.js?v=color-1';
 import {colorToolsMarkup} from './text-color.js?v=color-1';
-import {logoCss,logoStyle,logoSize,prepareLogoPreview} from './logo.js?v=logo-1';
+import {logoCss,logoStyle,logoSize,logoImageUrl,prepareLogoPreview} from './logo.js?v=brand-4';
 import {mediaAlt,mediaLabels} from './media-copy.js?v=studio-2';
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const selectors={logo:'header .brand,footer .brand',hero:'.hero-art',studio:'.about-copy',graphic:'.service-card:first-child .service-art',digital:'.service-card:nth-child(2) .service-art'};
@@ -58,7 +58,7 @@ export function mountVisualPage(root,{lang,rows,valueOf,onText,onMediaOptions,on
  async function applyMedia(placement){
   if(!doc||destroyed)return;
   const row=mediaOf(placement);if(!row?.image?.id||row.status==='archived')return;
-  const src=location.origin+'/api/image/'+row.image.id;
+  const src=location.origin+logoImageUrl(row.image);
   if(placement==='logo'){
    const logo=await prepareLogoPreview(src);if(destroyed)return;
    doc.documentElement.style.cssText=logoStyle(row.logo_size);
@@ -80,11 +80,11 @@ export function mountVisualPage(root,{lang,rows,valueOf,onText,onMediaOptions,on
   if(placements.includes(placement))uploadPlacement.value=placement;
   disposeEditors?.();selected={kind:'media',placement,node};highlight(node);setInspectorTab('edit');
   const row=mediaOf(placement),video=row?.image?.type?.startsWith('video/'),logo=placement==='logo';
-  inspector.innerHTML=`<span class="visual-kind">${logo?'LOGO':video?'VIDEO':'IMAGEN'}</span><h2>${esc(mediaLabels[placement])}</h2><div class="visual-media-preview">${row?.image?.id?(video?`<video class="visual-photo" controls preload="metadata" src="/api/image/${esc(row.image.id)}"></video>`:`<img class="visual-photo ${logo?'is-logo':''}" src="/api/image/${esc(row.image.id)}" alt="${esc(mediaAlt(placement,lang,row['alt_'+lang]))}">`):'<span class="visual-placeholder">Elige tu archivo</span>'}</div><button type="button" class="button primary" data-upload-visual>${logo?'Subir mi logo':'Subir foto o video'}</button><p>${logo?'JPG, PNG, WebP, AVIF o GIF · Hasta 25 MB.':'Fotos hasta 25 MB · Videos MP4 o WebM hasta 100 MB.'}</p>${logo&&row?.image?.id?`<label class="visual-logo-label" for="visual-logo-size">Tamaño del logo · <output id="visual-logo-value">${logoSize(row.logo_size)} px</output></label><input id="visual-logo-size" data-logo-size type="range" min="40" max="120" step="2" value="${logoSize(row.logo_size)}">`:''}<p>Selecciona el archivo, revisa el resultado en la página y pulsa <strong>Guardar cambios</strong>.</p><button type="button" class="button secondary" data-media-options>Más opciones</button>`;
+  inspector.innerHTML=`<span class="visual-kind">${logo?'LOGO':video?'VIDEO':'IMAGEN'}</span><h2>${esc(mediaLabels[placement])}</h2><div class="visual-media-preview">${row?.image?.id?(video?`<video class="visual-photo" controls preload="metadata" src="${esc(logoImageUrl(row.image))}"></video>`:`<img class="visual-photo ${logo?'is-logo':''}" src="${esc(logoImageUrl(row.image))}" alt="${esc(mediaAlt(placement,lang,row['alt_'+lang]))}">`):'<span class="visual-placeholder">Elige tu archivo</span>'}</div><button type="button" class="button primary" data-upload-visual>${logo?'Subir mi logo':'Subir foto o video'}</button><p>${logo?'JPG, PNG, WebP, AVIF o GIF · Hasta 25 MB.':'Fotos hasta 25 MB · Videos MP4 o WebM hasta 100 MB.'}</p>${logo&&row?.image?.id?`<label class="visual-logo-label" for="visual-logo-size">Tamaño del logo · <output id="visual-logo-value">${logoSize(row.logo_size)} px</output></label><input id="visual-logo-size" data-logo-size type="range" min="40" max="120" step="2" value="${logoSize(row.logo_size)}">`:''}<p>Selecciona el archivo, revisa el resultado en la página y pulsa <strong>Guardar cambios</strong>.</p><button type="button" class="button secondary" data-media-options>Más opciones</button>`;
   refresh();
   if(logo&&row?.image?.id){
    const image=inspector.querySelector('img');image.style.height=logoSize(row.logo_size)+'px';
-   try{const prepared=await prepareLogoPreview(location.origin+'/api/image/'+row.image.id);if(!destroyed&&selected?.kind==='media'&&selected.placement===placement&&image.isConnected)image.src=prepared.src;}catch(error){message(error.message);}
+   try{const prepared=await prepareLogoPreview(location.origin+logoImageUrl(row.image));if(!destroyed&&selected?.kind==='media'&&selected.placement===placement&&image.isConnected)image.src=prepared.src;}catch(error){message(error.message);}
   }
  }
  function setInspectorTab(tab){root.querySelectorAll('[data-inspector]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.inspector===tab)));}

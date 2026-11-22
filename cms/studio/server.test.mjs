@@ -1,6 +1,23 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createStudioServer } from './server.mjs';
+import {publishedLogoUrl,logoImageUrl} from './public/logo.js';
+
+test('Studio branding accepts only the published logo on its fixed public website and versions private logo previews',()=>{
+ const site='https://www.eonovastudios.com';
+ assert.equal(publishedLogoUrl('<img class="brand-logo" src="/_cms/123-logo-180.webp">',site),site+'/_cms/123-logo-180.webp');
+ for(const src of ['https://foreign.example/_cms/logo.png','/api/private','javascript:alert(1)','/_cms/../api/key','/_cms/logo.png?token=private'])assert.equal(publishedLogoUrl(`<img class="brand-logo" src="${src}">`,site),null);
+ assert.equal(publishedLogoUrl('<img src="/_cms/123-logo-180.webp">',site),null);
+ assert.notEqual(logoImageUrl({id:'logo',modified_on:'2026-11-22T12:00:00Z'}),logoImageUrl({id:'logo',modified_on:'2026-11-22T13:00:00Z'}));
+});
+
+test('login branding is public information and never exposes or reads private CMS credentials or files',async t=>{
+ const {request,calls}=await fixture(t,{publicHtml:'<header><img class="brand-logo" src="/_cms/123-logo-180.webp"></header>'});
+ const response=await request('/branding');assert.equal(response.status,200);
+ assert.deepEqual(await response.json(),{logo:'https://www.eonovastudios.com/_cms/123-logo-180.webp'});
+ assert.equal(calls.length,1);assert.equal(calls[0].path,'/');assert.equal(calls[0].headers,undefined);
+ assert.equal((await request('/api/bootstrap')).status,401);
+});
 
 const id = '12345678-1234-4123-a123-123456789012';
 const row = {id,label:'Titre',source:'Hola',section:'hero',es:'Hola',en:'Hello',fr:'Bonjour',status:'published',sort:0};
@@ -26,7 +43,7 @@ async function fixture(t, options = {}) {
     if(path==='/items/section_media/'+id)return result({id,placement:'logo',image:{id,type:'image/png'},alt_es:'Logo',alt_en:'Logo',alt_fr:'Logo',status:'published',...(request.method==='PATCH'?JSON.parse(request.body):{})});
     if(path==='/files/'+id)return result({id,type:'image/png',filesize:1000});
     if(path==='/folders')return result([]);
-    if(new URL(url).origin==='https://www.eonovastudios.com')return new Response('<!doctype html><html><head></head><body><main>Preview</main><script>window.forbidden=true</script></body></html>',{headers:{'Content-Type':'text/html'}});
+    if(new URL(url).origin==='https://www.eonovastudios.com')return new Response(options.publicHtml||'<!doctype html><html><head></head><body><main>Preview</main><script>window.forbidden=true</script></body></html>',{headers:{'Content-Type':'text/html'}});
     if(path==='/auth/logout')return new Response(null,{status:204});
     throw new Error('Unexpected upstream path '+path);
   };

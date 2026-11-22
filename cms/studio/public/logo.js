@@ -8,6 +8,22 @@ export function logoStyle(value) {
   return `--brand-logo-height:${size}px;--brand-logo-mobile-height:${Math.round(size*.7)}px`;
 }
 
+export function logoImageUrl(image){
+  const version=image.modified_on||image.uploaded_on;
+  return '/api/image/'+encodeURIComponent(image.id)+(version?'?v='+encodeURIComponent(version):'');
+}
+
+// Login branding comes only from the logo already visible on the fixed public site.
+export function publishedLogoUrl(html,website){
+  const image=(String(html).match(/<img\b[^>]*>/gi)||[]).find(tag=>tag.match(/\bclass\s*=\s*["']([^"']*)["']/i)?.[1].split(/\s+/).includes('brand-logo'));
+  const source=image?.match(/\bsrc\s*=\s*["']([^"']*)["']/i)?.[1];
+  if(!source)return null;
+  try{
+    const url=new URL(source,website);
+    return url.origin===new URL(website).origin&&/^\/_cms\/[a-z0-9-]+\.(?:webp|png|avif|jpg|jpeg|gif)$/i.test(url.pathname)&&!url.search&&!url.hash?url.href:null;
+  }catch{return null;}
+}
+
 // Crop only fully transparent padding. Every visible pixel and the source file survive.
 export function logoBounds(data,width,height) {
   let left=width,top=height,right=-1,bottom=-1;

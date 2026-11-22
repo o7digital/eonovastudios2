@@ -57,7 +57,7 @@ async function fixture(t, {readonly = false,logo = false} = {}) {
       }
       if (path === '/api/cms-publish') {publications++;return Response.json({id:'test-deployment'},{status:202});}
       if (['/','/en/','/fr/'].includes(path)) {
-        return new Response(`<!doctype html><html><head><style>${css}${logoCss}</style></head><body><header class="nav"><a class="brand">Logo</a></header><main><section class="hero" id="inicio"><div class="hero-art hero-motion"><canvas></canvas></div><div class="hero-copy"><h1 data-eon-source="Las ideas&lt;br&gt;no se quedan&lt;br&gt;&lt;em&gt;quietas.&lt;/em&gt;">${rows[0].es}</h1></div></section></main></body></html>`);
+        return new Response(`<!doctype html><html><head><style>${css}${logoCss}</style></head><body><header class="nav"><a class="brand">${logo?'<img class="brand-logo" src="/_cms/published-logo.png" alt="Logo">':'Logo'}</a></header><main><section class="hero" id="inicio"><div class="hero-art hero-motion"><canvas></canvas></div><div class="hero-copy"><h1 data-eon-source="Las ideas&lt;br&gt;no se quedan&lt;br&gt;&lt;em&gt;quietas.&lt;/em&gt;">${rows[0].es}</h1></div></section></main></body></html>`);
       }
       throw new Error('Unexpected fixture request '+path);
     },
@@ -68,6 +68,7 @@ async function fixture(t, {readonly = false,logo = false} = {}) {
   t.after(()=>browser.close());
   const page = await browser.newPage({viewport:{width:1500,height:1050}});page.setDefaultTimeout(10000);
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
+  await page.route('https://www.eonovastudios.com/_cms/published-logo.png',route=>route.fulfill({contentType:'image/png',body:png}));
   await page.context().request.post(base+'/api/login',{headers:{Origin:base},data:{email:'owner@example.com',password:'test-password'}});
   await page.goto(base+'/#visual');
   await page.locator('.visual-page-status[data-visual-ready]').waitFor();
@@ -120,6 +121,7 @@ test('Firefox: a read-only account cannot edit or publish through the visual edi
   assert.equal(await page.frameLocator('iframe').locator('h1').getAttribute('contenteditable'),'false');
   assert.equal(await page.locator('[data-save]').isDisabled(),true);
   assert.equal(await page.locator('[data-publish]').isDisabled(),true);
+  assert.equal(await page.locator('#edit-studio-logo').isDisabled(),true);
   for(const selector of ['[data-add-photo]','[data-add-video]','[data-upload-placement]'])assert.equal(await page.locator(selector).isDisabled(),true);
   await page.locator('[data-inspector="contents"]').click();
   await page.locator('[data-outline-text]').first().click();
@@ -335,5 +337,30 @@ test('Firefox: visible upload buttons accept a video, preview playback, save, re
   await page.locator('[data-save]').click();assert.equal((await replaced).status(),200);
   await page.locator('.visual-page-status[data-visual-ready]').waitFor();assert.equal(mediaRows.size,1);
   assert.equal([...mediaRows.values()][0].image.type,'image/png');assert.equal(await video.count(),0);
+  assert.deepEqual(errors,[]);
+});
+
+test('Firefox: the Studio uses the saved site logo and its direct button replaces it across the menu and page after save and reload',async t=>{
+  const {page,media,errors}=await fixture(t,{logo:true});
+  const sidebar=page.locator('#sidebar [data-studio-logo]'),login=page.locator('#login-view [data-studio-logo]');
+  await page.waitForFunction(()=>document.querySelector('#sidebar [data-studio-logo]').src.startsWith('data:image/'));
+  assert.equal(await sidebar.evaluate(node=>node.naturalWidth),200);
+  assert.equal(await sidebar.evaluate(node=>node.getBoundingClientRect().height),64);
+  await page.waitForFunction(()=>document.querySelector('#login-view [data-studio-logo]').src==='https://www.eonovastudios.com/_cms/published-logo.png');
+  assert.equal(await login.getAttribute('src'),'https://www.eonovastudios.com/_cms/published-logo.png');
+  assert.equal(await sidebar.getAttribute('src'),await page.frameLocator('iframe').locator('header .brand-logo').getAttribute('src'));
+  const original=await sidebar.getAttribute('src');
+  await page.locator('#edit-studio-logo').click();await page.locator('#media-dialog[open]').waitFor();
+  assert.equal(await page.locator('#media-placement').inputValue(),'logo');
+  const png=await sharp({create:{width:400,height:300,channels:4,background:'#00000000'}}).composite([{input:Buffer.from('<svg width="400" height="300"><rect x="160" y="130" width="80" height="40" fill="#ff6600"/></svg>')}]).png().toBuffer();
+  await page.locator('#media-file').setInputFiles({name:'nuevo-logo.png',mimeType:'image/png',buffer:png});
+  const saved=page.waitForResponse(r=>r.url().includes('/api/media/')&&r.request().method()==='PATCH');
+  await page.locator('#save-media').click();assert.equal((await saved).status(),200);
+  await page.locator('#media-dialog').waitFor({state:'hidden'});
+  await page.waitForFunction(original=>{const node=document.querySelector('#sidebar [data-studio-logo]');return node.src!==original&&node.naturalWidth===80;},original);
+  assert.equal(media.image.filename_download,'nuevo-logo.png');
+  await page.reload();await page.locator('.visual-page-status[data-visual-ready]').waitFor();
+  await page.waitForFunction(()=>document.querySelector('#sidebar [data-studio-logo]').naturalWidth===80);
+  assert.equal(await sidebar.getAttribute('src'),await page.frameLocator('iframe').locator('header .brand-logo').getAttribute('src'));
   assert.deepEqual(errors,[]);
 });

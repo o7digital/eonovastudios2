@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import {createWorkspace,WorkspaceError} from './workspace.mjs';
 import {createSocialMedia,SocialMediaError} from './social-media.mjs';
 import {mediaAlt} from './public/media-copy.js';
+import {publishedLogoUrl} from './public/logo.js';
 
 const uuid = /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i;
 const locales = ['es', 'en', 'fr'];
@@ -14,7 +15,7 @@ const imageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'imag
 const mediaTypes = [...imageTypes, 'video/mp4', 'video/webm'];
 const statuses = ['draft', 'published', 'archived'];
 const textFields = 'id,label,section,source,es,en,fr,status,sort';
-const mediaFields = 'id,placement,image.id,image.type,image.filename_download,alt_es,alt_en,alt_fr,status,sort,position,fit,logo_size';
+const mediaFields = 'id,placement,image.id,image.type,image.filename_download,image.modified_on,image.uploaded_on,alt_es,alt_en,alt_fr,status,sort,position,fit,logo_size';
 class ApiError extends Error { constructor(status, message) { super(message); this.status = status; } }
 
 export function createStudioServer(options = {}) {
@@ -112,6 +113,12 @@ export function createStudioServer(options = {}) {
     res.setHeader('Content-Security-Policy', "default-src 'self'; img-src 'self' blob: data: https:; media-src 'self' blob:; frame-src 'self'; style-src 'self'; font-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
     res.setHeader('X-Robots-Tag', 'noindex, nofollow');
     if (path === '/health' && req.method === 'GET') return send(res, { ok: true });
+    if(path==='/branding'&&req.method==='GET'){
+      try{
+        const page=await config.fetcher(new URL('/',config.website),{signal:AbortSignal.timeout(8000),redirect:'error'});
+        return send(res,{logo:page.ok?publishedLogoUrl(await page.text(),config.website):null});
+      }catch{return send(res,{logo:null});}
+    }
     if(/^\/social-media\/[a-f\d-]{36}$/.test(path)&&['GET','HEAD'].includes(req.method)){
       if(!config.mediaReadToken)throw new ApiError(503,'El acceso a los archivos multimedia no está configurado.');
       return socialMedia.publicStream(req,res,url);
