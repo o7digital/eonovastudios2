@@ -1,4 +1,4 @@
-import {visualPageMarkup,mountVisualPage} from './visual-page.js?v=color-1';
+import {visualPageMarkup,mountVisualPage} from './visual-page.js?v=media-3';
 import {logoSize,prepareLogoPreview} from './logo.js?v=logo-1';
 import {mediaAlt,mediaLabels} from './media-copy.js?v=studio-2';
 import {mountEditors} from './editor.js?v=color-1';

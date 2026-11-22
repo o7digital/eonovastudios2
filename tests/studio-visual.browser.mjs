@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
+import {randomUUID} from 'node:crypto';
 import {createServer} from 'node:net';
 import {firefox} from 'playwright';
 import sharp from 'sharp';
@@ -19,7 +20,6 @@ async function fixture(t, {readonly = false,logo = false} = {}) {
   const png=await sharp(Buffer.from('<svg width="800" height="600"><circle cx="400" cy="300" r="100" fill="white"/></svg>')).png().toBuffer();
   const mediaRows=new Map(logo?[[media.id,media]]:[]),files=new Map([[media.image.id,{bytes:png,type:'image/png',name:'logo.png'}]]);
   let publications=0,failNextMediaSave=false;
-  const uploadedId='12345678-1234-4123-a123-123456789015';
   const server = createStudioServer({
     cms:'https://cms.example',origin:base,secret:'a-test-secret-with-at-least-32-characters',secure:false,
     publishEnabled:true,publishSecret:'private-test-publish-secret',
@@ -38,6 +38,7 @@ async function fixture(t, {readonly = false,logo = false} = {}) {
       }
       if(path==='/folders')return result([]);
       if(path==='/files'&&options.method==='POST'){
+        const uploadedId=randomUUID();
         const file=options.body.get('file');files.set(uploadedId,{bytes:Buffer.from(await file.arrayBuffer()),type:file.type,name:file.name});
         return result({id:uploadedId,type:file.type,filename_download:file.name});
       }
@@ -119,6 +120,7 @@ test('Firefox: a read-only account cannot edit or publish through the visual edi
   assert.equal(await page.frameLocator('iframe').locator('h1').getAttribute('contenteditable'),'false');
   assert.equal(await page.locator('[data-save]').isDisabled(),true);
   assert.equal(await page.locator('[data-publish]').isDisabled(),true);
+  for(const selector of ['[data-add-photo]','[data-add-video]','[data-upload-placement]'])assert.equal(await page.locator(selector).isDisabled(),true);
   await page.locator('[data-inspector="contents"]').click();
   await page.locator('[data-outline-text]').first().click();
   for(const selector of ['[data-text-color]','[data-text-color-code]','[data-apply-color]'])assert.equal(await page.locator('.visual-inspector '+selector).isDisabled(),true);
@@ -287,5 +289,51 @@ test('Firefox: the optional media form saves a new file with all description fie
   await page.locator('#save-media').click();assert.equal((await saved).status(),201);
   await page.locator('#media-dialog').waitFor({state:'hidden'});assert.equal(mediaRows.size,1);
   const row=[...mediaRows.values()][0];for(const lang of ['es','en','fr'])assert.ok(row['alt_'+lang]);
+  assert.deepEqual(errors,[]);
+});
+
+test('Firefox: visible upload buttons accept a video, preview playback, save, reload and replace it with a photo',async t=>{
+  const {page,mediaRows,errors}=await fixture(t);
+  await page.locator('[data-upload-placement]').selectOption('logo');
+  assert.equal(await page.locator('[data-add-video]').isDisabled(),true);
+  await page.locator('[data-upload-placement]').selectOption('hero');
+  assert.equal(await page.locator('[data-add-video]').isEnabled(),true);
+  const bytes=await page.evaluate(async()=>{
+    const canvas=document.createElement('canvas');canvas.width=96;canvas.height=64;
+    const context=canvas.getContext('2d'),stream=canvas.captureStream(10),recorder=new MediaRecorder(stream,{mimeType:'video/webm'}),chunks=[];
+    const blob=new Promise(resolve=>{recorder.ondataavailable=event=>chunks.push(event.data);recorder.onstop=()=>resolve(new Blob(chunks,{type:'video/webm'}));});
+    recorder.start();let tick=0;
+    const drawing=setInterval(()=>{context.fillStyle=tick++%2?'#9aee68':'#171717';context.fillRect(0,0,96,64);},50);
+    setTimeout(()=>{clearInterval(drawing);recorder.stop();stream.getTracks().forEach(track=>track.stop());},700);
+    return [...new Uint8Array(await(await blob).arrayBuffer())];
+  });
+  const uploaded=page.waitForResponse(r=>r.url().endsWith('/api/upload')&&r.request().method()==='POST');
+  const chooser=page.waitForEvent('filechooser');await page.locator('[data-add-video]').click();
+  assert.equal(await page.locator('.visual-upload').getAttribute('accept'),'video/mp4,video/webm');
+  await(await chooser).setFiles({name:'mi-video.webm',mimeType:'video/webm',buffer:Buffer.from(bytes)});
+  assert.equal((await uploaded).status(),201);
+  const video=page.frameLocator('iframe').locator('.hero-art video');await video.waitFor();
+  await page.locator('[data-visual-save]:enabled').waitFor();assert.equal(mediaRows.size,0);
+  await page.locator('[data-visual-mode="preview"]').click();
+  assert.equal(await video.evaluate(node=>getComputedStyle(node).pointerEvents),'auto');
+  await video.evaluate(async node=>{node.muted=true;await node.play();});
+  assert.equal(await video.evaluate(node=>node.paused),false);
+  await page.locator('[data-visual-mode="edit"]').click();
+  assert.equal(await video.evaluate(node=>node.paused),true);
+  const saved=page.waitForResponse(r=>r.url().endsWith('/api/media')&&r.request().method()==='POST');
+  await page.locator('[data-save]').click();assert.equal((await saved).status(),201);
+  await page.locator('.visual-page-status[data-visual-ready]').waitFor();
+  const row=[...mediaRows.values()][0];assert.equal(row.placement,'hero');assert.equal(row.image.type,'video/webm');
+  await page.reload();await page.locator('.visual-page-status[data-visual-ready]').waitFor();assert.equal(await video.count(),1);
+  await page.locator('[data-upload-placement]').selectOption('hero');
+  const photoChooser=page.waitForEvent('filechooser');await page.locator('[data-add-photo]').click();
+  assert.ok(!(await page.locator('.visual-upload').getAttribute('accept')).includes('video/'));
+  const png=await sharp({create:{width:64,height:48,channels:3,background:'#a6ed74'}}).png().toBuffer();
+  await(await photoChooser).setFiles({name:'mi-foto.png',mimeType:'image/png',buffer:png});
+  await page.frameLocator('iframe').locator('.hero-art img').waitFor();await page.locator('[data-save]:enabled').waitFor();
+  const replaced=page.waitForResponse(r=>r.url().includes('/api/media/')&&r.request().method()==='PATCH');
+  await page.locator('[data-save]').click();assert.equal((await replaced).status(),200);
+  await page.locator('.visual-page-status[data-visual-ready]').waitFor();assert.equal(mediaRows.size,1);
+  assert.equal([...mediaRows.values()][0].image.type,'image/png');assert.equal(await video.count(),0);
   assert.deepEqual(errors,[]);
 });

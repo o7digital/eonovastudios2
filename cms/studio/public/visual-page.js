@@ -10,6 +10,7 @@ export function visualPageMarkup(lang){
  return `<section class="visual-page" aria-label="Editor visual de la página">
  <div class="visual-page-toolbar"><div class="visual-modes" role="group" aria-label="Modo del editor"><button type="button" data-visual-mode="edit" aria-pressed="true">Editar página</button><button type="button" data-visual-mode="preview" aria-pressed="false">Vista previa</button></div><div class="device-tabs" role="group" aria-label="Tamaño de pantalla"><button type="button" data-device="1440" aria-pressed="true">Ordenador</button><button type="button" data-device="820" aria-pressed="false">Tableta</button><button type="button" data-device="390" aria-pressed="false">Móvil</button></div><button type="button" class="icon-button" data-visual-expand aria-label="Ampliar editor">⛶</button><button type="button" class="button secondary" data-revert disabled>Descartar</button><button type="button" class="button primary" data-save data-visual-save disabled>Guardar cambios</button><button type="button" class="button secondary" data-publish disabled>Publicar mi sitio</button></div>
  <div class="visual-language"><span>Idioma del contenido</span><div class="language-tabs">${[['es','Español'],['en','Inglés'],['fr','Francés']].map(([key,name])=>`<button type="button" class="language-tab ${lang===key?'active':''}" data-language="${key}" aria-pressed="${lang===key}">${name}</button>`).join('')}</div></div>
+ <div class="visual-media-tools" role="group" aria-label="Subir fotos y videos"><label>Ubicación <select data-upload-placement aria-label="Ubicación de la foto o video"></select></label><button type="button" class="button secondary" data-add-photo>Subir foto</button><button type="button" class="button secondary" data-add-video>Subir video</button><span>Elige dónde aparecerá. Revisa el resultado y guarda.</span></div>
  <div id="save-summary" class="visual-page-status" role="status">Preparando tu página…</div>
  <div class="visual-page-workbench"><div class="visual-page-canvas"><div class="visual-browser-bar"><span aria-hidden="true">● ● ●</span><span>Tu sitio · Diseño real</span><span class="visual-dimensions">1440 px</span></div><div class="visual-page-viewport"><div class="visual-page-frame"><iframe title="EON NOVA · Editor visual" sandbox="allow-same-origin" src="/api/preview?lang=${lang}"></iframe></div><div class="visual-loading"><strong>Preparando tu página…</strong></div></div></div>
  <aside class="visual-inspector" aria-label="Contenido seleccionado"><div class="visual-inspector-tabs"><button type="button" data-inspector="edit" aria-pressed="true">Editar</button><button type="button" data-inspector="contents" aria-pressed="false">Contenido</button></div><div class="visual-inspector-content"><span class="visual-kind">TU PÁGINA</span><h2>Haz clic para editar.</h2><p>Selecciona un texto para escribir sobre el diseño.</p><p>Selecciona una foto o el logo para cambiar el archivo y ver el resultado aquí.</p><p>Guarda los cambios. Después, publica cuando todo esté listo.</p></div></aside></div>
@@ -19,6 +20,10 @@ export function visualPageMarkup(lang){
 export function mountVisualPage(root,{lang,rows,valueOf,onText,onMediaOptions,onPhoto,onMediaChange,onSave,canEdit,mediaOf,placements=Object.keys(selectors),anchor,prefs={},dirtyCount=()=>0,busy=()=>false}){
  const frame=root.querySelector('iframe'),status=root.querySelector('.visual-page-status'),inspector=root.querySelector('.visual-inspector-content'),upload=root.querySelector('.visual-upload');
  const targets=new Map();
+ const mediaTools=root.querySelector('.visual-media-tools'),uploadPlacement=mediaTools.querySelector('[data-upload-placement]');
+ mediaTools.hidden=!placements.length;
+ uploadPlacement.innerHTML=placements.map(placement=>`<option value="${placement}">${esc(mediaLabels[placement])}</option>`).join('');
+ uploadPlacement.value=placements.includes('hero')?'hero':placements[0]||'';
  let doc,selected,disposeEditors,destroyed=false,count=0,uploading=false,width=prefs.width||1440,mode=prefs.mode||'edit';
  const normalize=html=>{const t=document.createElement('template');t.innerHTML=html;return t.innerHTML.replace(/\s+/g,' ').trim();};
  const lookup=new Map();
@@ -33,6 +38,8 @@ export function mountVisualPage(root,{lang,rows,valueOf,onText,onMediaOptions,on
   for(const nodes of targets.values())for(const node of nodes){node.contentEditable=String(editable());node.setAttribute('aria-readonly',String(!editable()));}
   inspector.querySelectorAll('[data-rich-text]').forEach(node=>node.contentEditable=String(editable()));
   inspector.querySelectorAll('button,input').forEach(node=>node.disabled=!editable());
+  mediaTools.querySelectorAll('button,select').forEach(node=>node.disabled=!editable());
+  mediaTools.querySelector('[data-add-video]').disabled=!editable()||uploadPlacement.value==='logo';
  }
  function changeText(row,value,origin){
   if(!editable())return;
@@ -70,6 +77,7 @@ export function mountVisualPage(root,{lang,rows,valueOf,onText,onMediaOptions,on
   element.dataset.eonPlacement=placement;container.prepend(element);
  }
  async function selectMedia(placement,node){
+  if(placements.includes(placement))uploadPlacement.value=placement;
   disposeEditors?.();selected={kind:'media',placement,node};highlight(node);setInspectorTab('edit');
   const row=mediaOf(placement),video=row?.image?.type?.startsWith('video/'),logo=placement==='logo';
   inspector.innerHTML=`<span class="visual-kind">${logo?'LOGO':video?'VIDEO':'IMAGEN'}</span><h2>${esc(mediaLabels[placement])}</h2><div class="visual-media-preview">${row?.image?.id?(video?`<video class="visual-photo" controls preload="metadata" src="/api/image/${esc(row.image.id)}"></video>`:`<img class="visual-photo ${logo?'is-logo':''}" src="/api/image/${esc(row.image.id)}" alt="${esc(mediaAlt(placement,lang,row['alt_'+lang]))}">`):'<span class="visual-placeholder">Elige tu archivo</span>'}</div><button type="button" class="button primary" data-upload-visual>${logo?'Subir mi logo':'Subir foto o video'}</button><p>${logo?'JPG, PNG, WebP, AVIF o GIF · Hasta 25 MB.':'Fotos hasta 25 MB · Videos MP4 o WebM hasta 100 MB.'}</p>${logo&&row?.image?.id?`<label class="visual-logo-label" for="visual-logo-size">Tamaño del logo · <output id="visual-logo-value">${logoSize(row.logo_size)} px</output></label><input id="visual-logo-size" data-logo-size type="range" min="40" max="120" step="2" value="${logoSize(row.logo_size)}">`:''}<p>Selecciona el archivo, revisa el resultado en la página y pulsa <strong>Guardar cambios</strong>.</p><button type="button" class="button secondary" data-media-options>Más opciones</button>`;
@@ -93,7 +101,7 @@ export function mountVisualPage(root,{lang,rows,valueOf,onText,onMediaOptions,on
  function setMode(next){
   mode=next;prefs.mode=next;root.classList.toggle('is-preview',next==='preview');doc?.body.toggleAttribute('data-eon-preview',next==='preview');
   root.querySelectorAll('[data-visual-mode]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.visualMode===next)));
-  if(next==='preview')highlight(null);refresh();resize();
+  if(next==='preview')highlight(null);else doc?.querySelectorAll('video').forEach(video=>video.pause());refresh();resize();
  }
  function scrollToAnchor(){if(anchor)doc?.getElementById(anchor)?.scrollIntoView({block:'start'});}
  async function activate(){
@@ -102,6 +110,7 @@ export function mountVisualPage(root,{lang,rows,valueOf,onText,onMediaOptions,on
   try{
    if(!doc?.querySelector('main'))throw Error('No se pudo abrir la página. Vuelve a intentar.');
    const style=doc.createElement('style');style.textContent=`html{scroll-behavior:auto}body{overflow-x:hidden}[data-eon-text]{cursor:text;outline-offset:5px;pointer-events:auto!important}.hero-copy,.hero-bottom{pointer-events:auto!important}[data-eon-text]:hover{outline:1px dashed #9aee68}[data-eon-selected]{outline:2px solid #9aee68!important}[data-eon-placement]{cursor:pointer;outline-offset:3px;pointer-events:auto!important}[data-eon-placement]:hover{outline:3px dashed #9aee68}.eon-edit-media{position:relative;z-index:20;display:block;border:1px dashed #9aee68;background:#152315;color:#c8efb1;font:14px Arial;padding:12px;margin:12px;cursor:pointer}.hero-art{pointer-events:auto!important;animation:none!important}.hero-art:after{pointer-events:none}.hero-motion-controls{display:none!important}canvas{opacity:.2}video{pointer-events:none}[data-eon-preview] [data-eon-text]:hover,[data-eon-preview] [data-eon-placement]:hover{outline:0}[data-eon-preview] .eon-edit-media{display:none}`+logoCss;doc.head.append(style);
+   style.textContent+='[data-eon-preview] video{pointer-events:auto}';
    targets.clear();count=0;
    function visit(node){
     if(!node.tagName||['SCRIPT','STYLE','SVG','CANVAS','HEAD','NOSCRIPT'].includes(node.tagName))return;
@@ -145,6 +154,12 @@ export function mountVisualPage(root,{lang,rows,valueOf,onText,onMediaOptions,on
   if(button.dataset.visualMode)setMode(button.dataset.visualMode);
   if(button.hasAttribute('data-visual-expand')){root.classList.toggle('visual-expanded');button.setAttribute('aria-label',root.classList.contains('visual-expanded')?'Reducir editor':'Ampliar editor');resize();}
   if(button.hasAttribute('data-visual-save')&&canEdit&&!busy()&&!uploading)onSave();
+  if((button.hasAttribute('data-add-photo')||button.hasAttribute('data-add-video'))&&editable()){
+   const placement=uploadPlacement.value;if(!placements.includes(placement))return;
+   if(button.hasAttribute('data-add-video')&&placement==='logo')return;
+   selectMedia(placement,doc?.querySelector(`[data-eon-placement="${placement}"]`));
+   upload.accept=button.hasAttribute('data-add-video')?'video/mp4,video/webm':'image/jpeg,image/png,image/webp,image/avif,image/gif';upload.click();
+  }
   if(button.dataset.inspector){if(button.dataset.inspector==='contents')outline();else if(selected?.kind==='media')selectMedia(selected.placement,selected.node);else if(selected?.kind==='text')selectText(selected.row,selected.node);}
   if(button.dataset.outlineText){const row=rows.find(row=>row.id===button.dataset.outlineText),node=targets.get(row.id)?.[0];node?.scrollIntoView({block:'center'});selectText(row,node);}
   if(button.dataset.outlineMedia){const placement=button.dataset.outlineMedia,node=doc.querySelector(`[data-eon-placement="${placement}"]`);node?.scrollIntoView({block:'center'});selectMedia(placement,node);}
@@ -157,6 +172,7 @@ export function mountVisualPage(root,{lang,rows,valueOf,onText,onMediaOptions,on
    const size=Number(event.target.value);onMediaChange(selected.placement,{logo_size:size});doc.documentElement.style.cssText=logoStyle(size);inspector.querySelector('output').textContent=size+' px';inspector.querySelector('img').style.height=size+'px';refresh();
   }
  });
+ uploadPlacement.addEventListener('change',refresh);
  upload.addEventListener('change',async()=>{
   const file=upload.files[0],placement=selected?.placement;if(!file||!placement||!editable())return;
   uploading=true;message();refresh();
