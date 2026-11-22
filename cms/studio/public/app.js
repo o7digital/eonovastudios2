@@ -39,8 +39,8 @@ async function api(path, options = {}) {
 }
 function showLogin(){ $('#login-view').hidden=false;$('#studio-view').hidden=true;state.drafts.clear();workspace.reset();state.profile={};state.texts=[];state.media=[];$('#password').value=''; }
 function nav(){
-  const links=[{id:'overview',name:'Vista general',icon:'home'},{id:'visual',name:'Editar mi página',icon:'hero'},...sections.map(s=>({...s,icon:s.id})),{id:'media',name:'Fotos, videos y logo',icon:'media'}];
-  $('#main-nav').innerHTML=links.map(s=>`${s.id==='media'?'<div class="nav-separator"></div>':''}<a class="nav-item ${state.route===s.id?'active':''}" href="#${s.id}" ${state.route===s.id?'aria-current="page"':''}>${icon(s.icon)}<span>${s.name}</span>${s.id==='overview'?'':`<small class="nav-count">${s.id==='visual'?state.texts.length:s.id==='media'?state.media.filter(row=>row.status==='published').length:state.texts.filter(row=>row.section===s.id).length}</small>`}</a>`).join('');
+  const links=[{id:'overview',name:'Vista general',icon:'home'},{id:'visual',name:'Editar mi página',icon:'hero'},...sections.map(s=>({...s,icon:s.id})),{id:'media',name:'Fotos, videos y logo',icon:'media'},{id:'account',name:'Mi cuenta',icon:'interface'}];
+  $('#main-nav').innerHTML=links.map(s=>`${s.id==='media'?'<div class="nav-separator"></div>':''}<a class="nav-item ${state.route===s.id?'active':''}" href="#${s.id}" ${state.route===s.id?'aria-current="page"':''}>${icon(s.icon)}<span>${s.name}</span>${['overview','account'].includes(s.id)?'':`<small class="nav-count">${s.id==='visual'?state.texts.length:s.id==='media'?state.media.filter(row=>row.status==='published').length:state.texts.filter(row=>row.section===s.id).length}</small>`}</a>`).join('');
   $('#main-nav').insertAdjacentHTML('beforeend','<div class="nav-separator"></div><div class="nav-heading suite-nav-heading">DALE VIDA AL STUDIO</div>'+workspaceSections.map(s=>`<a class="nav-item ${state.route===s.id?'active':''}" href="#${s.id}" ${state.route===s.id?'aria-current="page"':''}><span class="nav-glyph" aria-hidden="true">${s.glyph}</span><span>${s.name}</span></a>`).join(''));
 }
 function pageHeading(eyebrow,title,description,actions=''){
@@ -82,10 +82,24 @@ function mediaPage(){return pageHeading('TU UNIVERSO VISUAL','Tu identidad. En c
   }).join('')}</div>`;
 }
 function visualPage(){return pageHeading('EDICIÓN VISUAL','Tu sitio es tu lienzo.','Escribe sobre el diseño, cambia tus fotos y revisa cada pantalla.')+visualPageMarkup(state.lang)+saveBar();}
+function accountPage(){
+  return pageHeading('MI CUENTA','Tu espacio. Tu acceso.','Administra tu contraseña personal de EON Studio.')+
+    `<div class="account-grid"><article class="account-card"><span class="eyebrow">TU PERFIL</span><h2>${esc(state.profile.name)}</h2><p>${esc(state.profile.email)}</p><p class="muted">Esta es tu cuenta personal para administrar EON NOVA.</p></article><section class="account-card"><h2>${state.profile.mustChangePassword?'Activa tu cuenta':'Cambiar mi contraseña'}</h2><p>${state.profile.mustChangePassword?'Tu contraseña es temporal. Elige una contraseña personal para entrar a tu Studio.':'Introduce tu contraseña actual y elige una nueva.'}</p><form id="account-password-form"><label for="account-current-password">Contraseña actual${state.profile.mustChangePassword?' (temporal)':''}</label><input id="account-current-password" type="password" autocomplete="current-password" required maxlength="250"><label for="account-new-password">Nueva contraseña</label><input id="account-new-password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required aria-describedby="account-password-hint"><small id="account-password-hint">Mínimo 12 caracteres. Puedes usar una frase larga.</small><label for="account-confirm-password">Confirmar nueva contraseña</label><input id="account-confirm-password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required><p id="account-password-error" class="form-error" role="alert" hidden></p><button type="submit" class="button primary">${state.profile.mustChangePassword?'Guardar y entrar a mi Studio':'Guardar nueva contraseña'}</button></form></section></div>`;
+}
+async function changePassword(event){
+ event.preventDefault();const form=event.currentTarget,button=form.querySelector('button[type=submit]'),error=$('#account-password-error');error.hidden=true;
+ const currentPassword=$('#account-current-password').value,newPassword=$('#account-new-password').value;
+ if(newPassword!==$('#account-confirm-password').value){error.textContent='Las dos contraseñas nuevas deben coincidir.';error.hidden=false;return;}
+ button.disabled=true;button.textContent='Actualizando contraseña…';
+ try{const result=await api('/api/account/password',{method:'POST',body:JSON.stringify({currentPassword,newPassword})});form.reset();if(result.reauthenticate){showLogin();toast(result.message);return;}history.replaceState(null,'','#overview');await load();toast(result.message);}
+ catch(issue){error.textContent=issue.message;error.hidden=false;}
+ finally{button.disabled=false;button.textContent='Guardar nueva contraseña';}
+}
 function render(){
-  nav();$('#breadcrumb').textContent=state.route==='visual'?'Editar mi página':state.route==='overview'?'Vista general':state.route==='media'?'Fotos, videos y logo':(sections.find(s=>s.id===state.route)||workspaceSections.find(s=>s.id===state.route)).name;
+  nav();$('#breadcrumb').textContent=state.route==='account'?'Mi cuenta':state.route==='visual'?'Editar mi página':state.route==='overview'?'Vista general':state.route==='media'?'Fotos, videos y logo':(sections.find(s=>s.id===state.route)||workspaceSections.find(s=>s.id===state.route)).name;
   if(workspaceSections.some(s=>s.id===state.route)){workspace.open(state.route);return;}
-  $('#content').innerHTML=state.route==='visual'?visualPage():state.route==='overview'?overview():state.route==='media'?mediaPage():editor();
+  $('#content').innerHTML=state.route==='account'?accountPage():state.route==='visual'?visualPage():state.route==='overview'?overview():state.route==='media'?mediaPage():editor();
+  $('#account-password-form')?.addEventListener('submit',changePassword);
   $('#content').querySelectorAll('[data-publish]').forEach(button=>button.addEventListener('click',publish));
   $('#content').querySelectorAll('[data-language]').forEach(button=>button.addEventListener('click',()=>{state.lang=button.dataset.language;render();}));
   mountEditors($('#content'),{editable:state.canEdit,onChange:(id,value)=>{recordDraft(id,state.lang,value);updatePending();}});
@@ -135,7 +149,7 @@ async function load(){
   $('#login-view').hidden=true;$('#studio-view').hidden=false;route();
 }
 function route(){
-  const hash=location.hash.slice(1),allowed=['overview','visual','media',...sections.map(s=>s.id),...workspaceSections.map(s=>s.id)];state.route=allowed.includes(hash)?hash:'overview';state.filter='';closeMenu();render();
+  const hash=location.hash.slice(1),allowed=['overview','visual','media','account',...sections.map(s=>s.id),...workspaceSections.map(s=>s.id)];state.route=state.profile.mustChangePassword?'account':allowed.includes(hash)?hash:'overview';state.filter='';closeMenu();render();
 }
 function openMenu(){ $('#sidebar').classList.add('open');$('#sidebar-shade').hidden=false;$('#menu-toggle').setAttribute('aria-expanded','true'); }
 function closeMenu(){ $('#sidebar').classList.remove('open');$('#sidebar-shade').hidden=true;$('#menu-toggle').setAttribute('aria-expanded','false'); }

@@ -98,3 +98,19 @@ Les tests serveur couvrent les sessions, l'origine des écritures, les champs no
 La migration additive `cms/upgrade-media.mjs` ajoute les champs de cadrage et le choix de logo ; elle ne remplace aucun contenu existant. Le bootstrap inclut ces champs pour une future installation. Le compte build garde ses droits de lecture existants. Les fichiers du site sont copiés dans le build public uniquement quand leur emplacement est inclus.
 
 Les contrôles Firefox ont couvert une édition enregistrée puis restaurée, un upload de logo avec cadrage et un MP4 avec streaming partiel. Les fichiers et fiches de contrôle ont été supprimés.
+
+## Comptes personnels et mots de passe
+
+Chaque personne utilise son propre compte Directus. Le rôle **EON Studio editor** gère les textes, médias et rendez-vous, sans accès administrateur à Directus. L'adresse `STUDIO_OWNER_EMAIL` désigne la personne qui utilise les contacts et communications EON dans le Studio ; le compte technique O7 reste distinct.
+
+Le menu **Mi cuenta** permet de remplacer son mot de passe avec vérification du mot de passe actuel et double saisie du nouveau (12 à 128 caractères). Les comptes créés avec `studio_password_temporary=true` doivent choisir leur mot de passe personnel à la première connexion avant d'accéder aux fonctions du Studio. Le serveur vérifie ce statut depuis un cookie chiffré ; une modification de l'URL ne permet pas de contourner cette étape. Le changement renouvelle la session et efface le statut temporaire.
+
+Préparation idempotente du champ, des rôles et de la connexion serveur :
+
+```sh
+railway run --no-local --service directus --environment production -- node cms/studio/provision-accounts.mjs
+```
+
+Le plan Core ne permet pas les règles personnalisées de permissions par ligne ou champ. Le service de compte a donc accès à la collection utilisateurs, exclusivement via le secret serveur `STUDIO_ACCOUNT_WRITE_TOKEN`. Aucun compte éditorial n'obtient ce jeton ou les permissions de ce service. La route publique ne reçoit jamais d'identifiant de compte à modifier : elle utilise l'identité de la session, vérifie à nouveau le mot de passe actuel et n'écrit que `password` et `studio_password_temporary`. Les échecs sont limités à cinq essais par période de dix minutes. Ne jamais accorder les permissions du service au rôle éditeur.
+
+La création d'un compte personnel actif avec un mot de passe temporaire ne déclenche aucun e-mail d'invitation. Les mots de passe ne doivent figurer ni dans Git ni dans les journaux de déploiement. Préserver le jeton de service lors d'une migration VPS.

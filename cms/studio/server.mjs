@@ -32,6 +32,7 @@ export function createStudioServer(options = {}) {
     servicePassword: process.env.ARM_SERVICE_PASSWORD,
     ownerEmail: process.env.STUDIO_OWNER_EMAIL,
     mediaReadToken: process.env.STUDIO_MEDIA_READ_TOKEN,
+    accountToken: process.env.STUDIO_ACCOUNT_WRITE_TOKEN,
     ...options,
   };
   if (!config.cms || !config.origin || !config.secret || config.secret.length < 32) throw new Error('Configure DIRECTUS_URL, STUDIO_ORIGIN and STUDIO_SESSION_SECRET (32+ characters).');
@@ -128,7 +129,8 @@ export function createStudioServer(options = {}) {
         attempts.set(ip, attempt);
         const data = await cms('/auth/login', null, 'POST', { email: input.email, password: input.password, mode: 'json' });
         const profile = await cms('/users/me?fields=id,email,first_name,last_name', data.access_token);
-        setSession(res, { access: data.access_token, refresh: data.refresh_token, accessUntil: Date.now() + data.expires, until: Date.now() + 8 * 3600000, id: profile.id });
+        const security = config.accountToken ? await cms(`/users/${profile.id}?fields=studio_password_temporary`,config.accountToken) : {};
+        setSession(res, { mustChangePassword: security.studio_password_temporary === true, access: data.access_token, refresh: data.refresh_token, accessUntil: Date.now() + data.expires, until: Date.now() + 8 * 3600000, id: profile.id });
         return send(res, { ok: true });
       }
       if (path === '/api/logout' && req.method === 'POST') {
@@ -136,6 +138,32 @@ export function createStudioServer(options = {}) {
         setSession(res, null); return send(res, { ok: true });
       }
       const s = await authenticated(req, res);
+      if (path === '/api/account/password' && req.method === 'POST') {
+        if (!config.accountToken) throw new ApiError(503,'El cambio de contraseña no está configurado.');
+        const input = await jsonBody(req);
+        if (Object.keys(input).some(key=>!['currentPassword','newPassword'].includes(key)) || typeof input.currentPassword !== 'string' || !input.currentPassword || input.currentPassword.length > 250 || typeof input.newPassword !== 'string' || input.newPassword.length < 12 || input.newPassword.length > 128 || input.newPassword.trim() !== input.newPassword) throw new ApiError(400,'Usa una nueva contraseña de 12 a 128 caracteres, sin espacios al inicio o al final.');
+        if (input.currentPassword === input.newPassword) throw new ApiError(400,'Elige una contraseña diferente a la actual.');
+        const attemptKey='password:'+s.id,previous=attempts.get(attemptKey),attempt=previous?.until>Date.now()?previous:{count:0,until:Date.now()+600000};
+        attempts.set(attemptKey,attempt);
+        if (++attempt.count>5) throw new ApiError(429,'Espera diez minutos antes de volver a intentar cambiar tu contraseña.');
+        const profile=await cms('/users/me?fields=id,email',s.access);
+        let verified;
+        try { verified=await cms('/auth/login',null,'POST',{email:profile.email,password:input.currentPassword,mode:'json'}); }
+        catch(error) { if([401,403].includes(error.status)) throw new ApiError(400,'La contraseña actual no es correcta.'); throw error; }
+        try {
+          const identity=await cms('/users/me?fields=id',verified.access_token);
+          if(identity.id!==s.id || profile.id!==s.id) throw new ApiError(403,'No se pudo verificar tu cuenta.');
+          await write(()=>cms(`/users/${s.id}`,config.accountToken,'PATCH',{password:input.newPassword,studio_password_temporary:false}));
+        } finally { await cms('/auth/logout',null,'POST',{refresh_token:verified.refresh_token}).catch(()=>{}); }
+        attempts.delete(attemptKey);
+        await cms('/auth/logout',null,'POST',{refresh_token:s.refresh}).catch(()=>{});
+        let fresh;
+        try { fresh=await cms('/auth/login',null,'POST',{email:profile.email,password:input.newPassword,mode:'json'}); }
+        catch { setSession(res,null);return send(res,{ok:true,reauthenticate:true,message:'Tu contraseña se actualizó. Inicia sesión con tu nueva contraseña.'}); }
+        setSession(res,{access:fresh.access_token,refresh:fresh.refresh_token,accessUntil:Date.now()+fresh.expires,until:Date.now()+8*3600000,id:s.id,mustChangePassword:false});
+        return send(res,{ok:true,message:'Tu contraseña se actualizó. Ya puedes usar tu Studio.'});
+      }
+      if (s.mustChangePassword && path !== '/api/bootstrap') throw new ApiError(409,'Cambia tu contraseña temporal en Mi cuenta para activar tu Studio.');
       if(await workspace.handle({path,url,req,res,s,jsonBody,send,body}))return;
       if (path === '/api/preview' && req.method === 'GET') {
         const lang = url.searchParams.get('lang') || 'es';
@@ -155,8 +183,8 @@ export function createStudioServer(options = {}) {
           cms('/permissions/me', s.access),
         ]);
         const permission = rights?.site_texts?.update;
-        return send(res, { profile: { email: profile.email, name: [profile.first_name, profile.last_name].filter(Boolean).join(' ') }, texts, media,
-          website: config.website, workspaceReady:workspace.ready(), publishReady: config.publishEnabled && Boolean(config.publishSecret), canEdit: permission?.access === 'full' || permission?.access === 'partial' || permission?.access === true });
+        return send(res, { profile: { email: profile.email, name: [profile.first_name, profile.last_name].filter(Boolean).join(' '), mustChangePassword: s.mustChangePassword === true }, texts, media,
+          website: config.website, workspaceReady:workspace.ready(), publishReady: config.publishEnabled && Boolean(config.publishSecret), canEdit: !s.mustChangePassword && (permission?.access === 'full' || permission?.access === 'partial' || permission?.access === true) });
       }
       const textId = path.match(/^\/api\/texts\/([a-f\d-]{36})$/i)?.[1];
       if (path === '/api/texts' && req.method === 'PATCH') {

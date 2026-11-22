@@ -6,11 +6,13 @@ const id = '12345678-1234-4123-a123-123456789012';
 const row = {id,label:'Titre',source:'Hola',section:'hero',es:'Hola',en:'Hello',fr:'Bonjour',status:'published',sort:0};
 const origin = 'https://studio.example';
 async function fixture(t, options = {}) {
-  const calls=[];
+  const calls=[];let temporary=options.temporary===true;
   const fetcher=async(url, request)=>{
     const path=new URL(url).pathname;calls.push({path,...request});
     const result=data=>Response.json({data});
+    if(path==='/auth/login'&&options.wrongPassword&&JSON.parse(request.body).password==='wrong-password')return Response.json({},{status:401});
     if(path==='/auth/login'||path==='/auth/refresh')return result({access_token:'private-access-token',refresh_token:'private-refresh-token',expires:options.expires??3600000});
+    if(path==='/users/'+id){if(request.method==='PATCH')temporary=JSON.parse(request.body).studio_password_temporary;return result({id,studio_password_temporary:temporary});}
     if(path==='/users/me')return result({id,email:'owner@example.com',first_name:'Eon',last_name:'Owner'});
     if(path==='/permissions/me')return result({site_texts:{update:{access:options.readonly?'none':'full'}}});
     if(path==='/items/site_texts'){
@@ -26,7 +28,7 @@ async function fixture(t, options = {}) {
     if(path==='/auth/logout')return new Response(null,{status:204});
     throw new Error('Unexpected upstream path '+path);
   };
-  const server=createStudioServer({cms:'https://cms.example',origin,secret:'a-secure-test-session-key-with-more-than-32-characters',secure:true,fetcher,publishEnabled:false});
+  const server=createStudioServer({cms:'https://cms.example',origin,secret:'a-secure-test-session-key-with-more-than-32-characters',secure:true,fetcher,publishEnabled:false,accountToken:options.accounts?'private-account-writer':undefined});
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   t.after(()=>new Promise(resolve=>{server.closeAllConnections();server.close(resolve);}));
   const base=`http://127.0.0.1:${server.address().port}`;
@@ -90,4 +92,38 @@ test('visual preview requires authentication, fixes its target, and disables scr
  assert.match(await preview.text(),/<base href="https:\/\/www.eonovastudios.com\//);
  assert.equal(calls.at(-1).path,'/fr/');
  const library=await request('/api/library',{headers:{Cookie:cookie}});assert.equal(library.status,200);assert.deepEqual(await library.json(),[]);
+});
+
+
+test('temporary accounts must change their password; verified changes target only the signed-in user',async t=>{
+ const {request,login,calls}=await fixture(t,{accounts:true,temporary:true});
+ const cookie=(await login()).headers.get('set-cookie').split(';')[0];
+ const headers={Cookie:cookie};
+ const bootstrap=await(await request('/api/bootstrap',{headers})).json();
+ assert.equal(bootstrap.profile.mustChangePassword,true);assert.equal(bootstrap.canEdit,false);
+ assert.equal((await request('/api/texts',{method:'PATCH',headers,body:JSON.stringify({items:[{id,es:'blocked'}]})})).status,409);
+ assert.equal((await request('/api/account/password',{method:'POST',headers:{...headers,Origin:'https://forged.example'},body:'{}'})).status,403);
+ const changed=await request('/api/account/password',{method:'POST',headers,body:JSON.stringify({currentPassword:'private-password',newPassword:'my-new-private-password'})});
+ assert.equal(changed.status,200);assert.equal((await changed.json()).ok,true);
+ const written=calls.find(call=>call.path==='/users/'+id&&call.method==='PATCH');
+ assert.deepEqual(JSON.parse(written.body),{password:'my-new-private-password',studio_password_temporary:false});
+ assert.equal(written.headers.Authorization,'Bearer private-account-writer');
+ const newCookie=changed.headers.get('set-cookie');assert.match(newCookie,/HttpOnly/);assert.ok(!newCookie.includes('my-new-private-password'));
+ const unlocked=await(await request('/api/bootstrap',{headers:{Cookie:newCookie.split(';')[0]}})).json();
+ assert.equal(unlocked.profile.mustChangePassword,false);assert.equal(unlocked.canEdit,true);
+});
+
+test('account password changes reject injected targets, short passwords and incorrect current passwords before writing',async t=>{
+ const {request,login,calls}=await fixture(t,{accounts:true,wrongPassword:true});
+ const cookie=(await login()).headers.get('set-cookie').split(';')[0],headers={Cookie:cookie};
+ const change=body=>request('/api/account/password',{method:'POST',headers,body:JSON.stringify(body)});
+ for(const input of [
+  {currentPassword:'private-password',newPassword:'short'},
+  {currentPassword:'private-password',newPassword:'private-password'},
+  {currentPassword:'private-password',newPassword:'new-private-password',id:'someone-else'},
+  {currentPassword:'wrong-password',newPassword:'new-private-password'},
+ ])assert.equal((await change(input)).status,400);
+ assert.equal(calls.filter(call=>call.path==='/users/'+id&&call.method==='PATCH').length,0);
+ for(let i=0;i<4;i++)assert.equal((await change({currentPassword:'wrong-password',newPassword:'new-private-password'})).status,400);
+ assert.equal((await change({currentPassword:'wrong-password',newPassword:'new-private-password'})).status,429);
 });

@@ -72,6 +72,7 @@ services:
       STUDIO_PUBLISH_ENABLED: 'false'
       ARM_API_URL: https://api.crm.o7digitalgroup.com/api
       ARM_TENANT_ID: 229dd065-2d9c-40fd-81e0-04e2ea009412
+      STUDIO_ACCOUNT_WRITE_TOKEN: ${STUDIO_ACCOUNT_WRITE_TOKEN:?Preserve the private account password writer}
       STUDIO_OWNER_EMAIL: ${STUDIO_OWNER_EMAIL:?Set the Directus owner email}
       ARM_SERVICE_EMAIL: ${ARM_SERVICE_EMAIL:?Preserve the EON connector email}
       ARM_SERVICE_PASSWORD: ${ARM_SERVICE_PASSWORD:?Preserve the EON connector password}
