@@ -1,4 +1,4 @@
-import {visualPageMarkup,mountVisualPage} from './visual-page.js?v=visual-2';
+import {visualPageMarkup,mountVisualPage} from './visual-page.js?v=wysiwyg-3';
 import {mountEditors} from './editor.js?v=visual-2';
 import {createWorkspaceUI,workspaceSections} from './workspace-ui.js?v=es-mx-1';
 const $ = selector => document.querySelector(selector);
@@ -64,7 +64,7 @@ function editableCard(row){
   const data=values(row),title=plain(row.label || row.source),long=row.source.length>160;
   return `<article class="text-card ${long?'long':''} ${state.drafts.has(row.id)?'changed':''}" data-card="${row.id}"><div class="field-head"><label id="label-${row.id}" class="field-label" for="text-${row.id}">${esc(title)}</label><span class="field-status ${esc(data.status)}" data-badge="${row.id}">${data.status==='published'?'Listo para el sitio':data.status==='draft'?'Borrador':'Archivado'}</span></div>${state.lang!=='es'?`<p class="source-hint">Español · ${esc(plain(data.es))}</p>`:''}<div class="visual-editor"><div class="rich-toolbar" role="toolbar" aria-label="Formato del texto"><button type="button" data-format="bold" title="Negrita (Ctrl/Cmd+B)" aria-label="Negrita"><strong>B</strong></button><button type="button" data-format="italic" title="Énfasis (Ctrl/Cmd+I)" aria-label="Énfasis"><em>Énfasis</em></button><span class="toolbar-divider"></span><button type="button" data-format="undo" aria-label="Deshacer" title="Deshacer">↶</button><button type="button" data-format="redo" aria-label="Rehacer" title="Rehacer">↷</button><span class="editor-mode">VISTA VISUAL</span></div><div id="text-${row.id}" class="rich-field ${long?'rich-long':''}" data-rich-text="${row.id}" role="textbox" aria-multiline="true" aria-labelledby="label-${row.id}" lang="${state.lang}" spellcheck="true">${esc(data[state.lang])}</div><div class="rich-bottom"><span>Formato listo para el sitio</span><span class="editor-length"></span></div></div><div class="field-foot"><span><i class="editable-dot"></i>${state.canEdit?'Editable':'Solo lectura'} · ${languages[state.lang].name}</span><select aria-label="Visibilidad: ${esc(title.slice(0,90))}" data-status="${row.id}" ${!state.canEdit?'disabled':''}>${Object.entries(statusLabel).map(([value,label])=>`<option value="${value}" ${value===data.status?'selected':''}>${label}</option>`).join('')}</select></div></article>`;
 }
-function saveBar(){return `<div class="editor-savebar"><div><strong id="save-summary">${pendingSummary()}</strong><small>Guardar conserva tus textos. Publicar el sitio es un paso aparte.</small></div><div class="savebar-actions"><button class="button secondary" data-revert ${!sectionDirty()?'disabled':''}>Descartar cambios</button><button class="button primary" data-save ${!sectionDirty()||!state.canEdit?'disabled':''}>Guardar sección <span>↗</span></button></div></div>`;}
+function saveBar(){return `<div class="editor-savebar"><div><strong id="save-summary">${pendingSummary()}</strong><small>Guarda tus cambios y pulsa Publicar mi sitio para actualizar la página pública.</small></div><div class="savebar-actions"><button class="button secondary" data-revert ${!sectionDirty()?'disabled':''}>Descartar cambios</button><button class="button primary" data-save ${!sectionDirty()||!state.canEdit?'disabled':''}>Guardar cambios <span>↗</span></button><button class="button secondary" data-publish ${!state.publishReady||state.drafts.size||!state.canEdit?'disabled':''}>Publicar mi sitio <span>↗</span></button></div></div>`;}
 function sectionDirty(){return currentRows().filter(row=>state.drafts.has(row.id)).length;}
 function pendingSummary(){const n=sectionDirty();return n?`${n} texto${n!==1?'s':''} por guardar`:'Todos tus textos están guardados';}
 function editor(){
@@ -124,6 +124,7 @@ function updatePending(){
   $('#content').querySelectorAll('[data-format],[data-status]').forEach(field=>field.disabled=!editable);
   $('#save-summary').textContent=pendingSummary();
   $('[data-save]').disabled=!sectionDirty()||state.busy||!state.canEdit;$('[data-revert]').disabled=!sectionDirty()||state.busy;
+  $('#content').querySelectorAll('[data-publish]').forEach(button=>button.disabled=!state.publishReady||state.drafts.size>0||state.busy||!state.canEdit);
   for(const row of currentRows()){
     const data=values(row);$(`[data-card="${row.id}"]`)?.classList.toggle('changed',state.drafts.has(row.id));
     const badge=$(`[data-badge="${row.id}"]`);if(badge){badge.className='field-status '+data.status;badge.textContent=data.status==='published'?'Listo para el sitio':data.status==='draft'?'Borrador':'Archivado';}
@@ -139,7 +140,7 @@ async function saveTexts(){
   try{
     const rows=await api('/api/texts',{method:'PATCH',body:JSON.stringify({items})});
     for(const row of rows){const index=state.texts.findIndex(item=>item.id===row.id);state.texts[index]=row;state.drafts.delete(row.id);}
-    toast('Tu sección está guardada.');
+    toast('Cambios guardados. Pulsa Publicar mi sitio para mostrarlos en la página pública.');
   }catch(error){toast(error.message,true);}finally{state.busy=false;render();}
 }
 async function load(){

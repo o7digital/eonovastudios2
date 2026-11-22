@@ -70,6 +70,40 @@ test('CMS publishes private video assets and logo framing, rejects invalid types
   media.push(media[0]);await assert.rejects(loadCms(options),/duplicate/);
 });
 
+test('CMS publication uses a private EON deploy hook without a permanent Vercel token', async () => {
+  const savedFetch=globalThis.fetch;
+  const keys=['CMS_PUBLISH_SECRET','VERCEL_DEPLOY_TOKEN','CMS_DEPLOY_HOOK_URL'];
+  const saved=Object.fromEntries(keys.map(key=>[key,process.env[key]]));
+  const res=()=>({setHeader(){},status(code){this.code=code;return this;},json(body){this.body=body;return this;}});
+  const req={method:'POST',headers:{authorization:'Bearer hook-test-secret'},body:{url:'https://other.example'}};
+  try {
+    process.env.CMS_PUBLISH_SECRET='hook-test-secret';
+    delete process.env.VERCEL_DEPLOY_TOKEN;
+    process.env.CMS_DEPLOY_HOOK_URL='https://api.vercel.com/v1/integrations/deploy/prj_bSppuywI4jwUlMZjBdHOwQ0b394s/private-hook';
+    let calls=0;
+    globalThis.fetch=async(url,options)=>{
+      calls++;
+      assert.equal(url.origin,'https://api.vercel.com');
+      assert.equal(url.searchParams.get('buildCache'),'false');
+      assert.equal(options.method,'POST');
+      assert.equal(options.redirect,'error');
+      assert.equal(options.headers,undefined);
+      return calls===1?Response.json({error:'upstream failed'},{status:503}):Response.json({job:{id:'publication-job',state:'PENDING'}});
+    };
+    const unauthorized=res();await publish({method:'POST',headers:{}},unauthorized);assert.equal(unauthorized.code,401);assert.equal(calls,0);
+    process.env.CMS_DEPLOY_HOOK_URL='https://other.example/v1/integrations/deploy/prj_bSppuywI4jwUlMZjBdHOwQ0b394s/private-hook';
+    const invalid=res();await publish(req,invalid);assert.equal(invalid.code,502);assert.equal(calls,0);
+    process.env.CMS_DEPLOY_HOOK_URL=saved.CMS_DEPLOY_HOOK_URL||'https://api.vercel.com/v1/integrations/deploy/prj_bSppuywI4jwUlMZjBdHOwQ0b394s/private-hook';
+    const failed=res();await publish(req,failed);assert.equal(failed.code,502);
+    const started=res();await publish(req,started);assert.equal(started.code,202);assert.equal(started.body.id,'publication-job');
+    assert.ok(!JSON.stringify(started.body).includes('private-hook'));
+    const repeated=res();await publish(req,repeated);assert.equal(repeated.code,429);assert.equal(calls,2);
+  } finally {
+    globalThis.fetch=savedFetch;
+    for (const key of keys) {if(saved[key]===undefined)delete process.env[key];else process.env[key]=saved[key];}
+  }
+});
+
 test('CMS annotations keep edited text identifiable across publication without changing attributes or scripts',()=>{
  const row={source:'Hola <em>mundo</em>',es:'Nuevo <strong>mundo</strong>',en:'Hello',fr:'Bonjour'};
  const output=applyCopy('<h1>Hola <em>mundo</em></h1>',[row],'es',{}, {annotate:true});

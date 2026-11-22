@@ -56,7 +56,7 @@ Les titres conservent les balises inline existantes (`br`, `em`, `span`, `strong
 
 Les images se gèrent par emplacement : accueil, studio, service graphique et service digital. Ajouter ou remplacer le fichier, remplir ses descriptions dans les trois langues, puis enregistrer. Formats : JPG, PNG, WebP, AVIF, GIF ; 25 Mo maximum. **Retrouver l'original** archive l'enregistrement, sans supprimer le fichier, et rétablit le visuel intégré au prochain déploiement.
 
-Enregistrer et publier sont deux étapes distinctes. Le bouton de publication est **préparé mais désactivé**, conformément au choix du propriétaire. Les contenus peuvent déjà être enregistrés et être inclus dans un déploiement manuel du site. Les statuts Publié/Brouillon/Archivé gardent le comportement décrit dans [le guide CMS](../README.md).
+Enregistrer et publier sont deux étapes distinctes : **Guardar cambios** conserve les textes, puis **Publicar mi sitio**, accessible dans la même barre, lance le build public après confirmation. Attendre sa fin avant de recharger le site. Les statuts Publié/Brouillon/Archivé gardent le comportement décrit dans [le guide CMS](../README.md).
 
 ## Déploiement et secrets
 
@@ -91,7 +91,7 @@ Les tests serveur couvrent les sessions, l'origine des écritures, les champs no
 
 ## Édition visuelle et médias (novembre 2026)
 
-**Editar mi página** affiche le vrai design dans un cadre privé, sans exécuter les scripts du site. Cliquer sur un texte permet de le modifier dans la page ou dans le panneau latéral. Les trois langues et les tailles ordinateur, tablette et mobile sont disponibles. Les textes des expériences interactives restent aussi accessibles dans les rubriques. Les champs des rubriques utilisent désormais un éditeur visuel : negrita, énfasis, sauts de ligne, annuler/rétablir. Seules les balises inline autorisées sont conservées.
+**Editar mi página** affiche le vrai design dans un cadre privé, sans exécuter les scripts du site. Cliquer sur un texte permet de le modifier dans la page ou dans le panneau latéral. Les trois langues et les tailles ordinateur, tablette et mobile sont disponibles. Les règles de clic de l’aperçu réactivent explicitement les textes que le design public rend non interactifs, notamment le titre et la description d’accueil. Les textes des expériences interactives restent aussi accessibles dans les rubriques. Les champs des rubriques utilisent désormais un éditeur visuel : negrita, énfasis, sauts de ligne, annuler/rétablir. Seules les balises inline autorisées sont conservées.
 
 **Fotos, videos y logo** propose cinq emplacements : logo (en-tête et pied), accueil, studio, graphique, digital. Le logo exige une image ; les quatre autres acceptent aussi MP4 et WebM. Images : 25 Mo, vidéos : 100 Mo. Upload avec progression, bibliothèque réutilisable des 100 fichiers les plus récents, aperçu privé, ajustement cover/contain et position horizontale/verticale. Les originaux sont conservés. Les vidéos publiques utilisent le lecteur natif, sans lecture automatique sonore. Les requêtes partielles permettent de déplacer la tête de lecture.
 

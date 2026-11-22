@@ -25,7 +25,7 @@ Les traductions partagées sont centralisées dans `src/i18n/translations.json` 
 
 Depuis `/admin/`, **Editar mi página** permet de modifier les textes directement sur le design, avec aperçu ordinateur, tablette et mobile. Les rubriques proposent aussi un éditeur visuel avec negrita, énfasis et sauts de ligne. **Fotos, videos y logo** gère le logo commun de l’en-tête et du pied de page, les photos et vidéos MP4/WebM des quatre emplacements, une bibliothèque réutilisable et le cadrage sans altérer les originaux. Images : 25 Mo ; vidéos : 100 Mo.
 
-La sauvegarde CMS est opérationnelle. Le bouton de publication autonome reste désactivé tant que le jeton permanent `VERCEL_DEPLOY_TOKEN` n’est pas configuré dans Vercel Production (la session CLI ne peut pas le créer : HTTP 403). Les déploiements manuels fonctionnent via `vercel deploy --prod --yes`.
+La sauvegarde et la publication CMS sont reliées : **Guardar cambios**, puis **Publicar mi sitio** depuis l’éditeur. La publication utilise un Deploy Hook Vercel privé (`CMS_DEPLOY_HOOK_URL`, Production), sur la branche `dev` qui fournit le site public. Aucun jeton Vercel permanent n’est nécessaire. Attendre la fin du build avant de vérifier les changements publics. Les déploiements manuels restent disponibles avec `vercel deploy --prod --yes`.
 
 Les métadonnées comprennent les titres et descriptions par langue, les liens canoniques et hreflang, Open Graph, les cartes sociales et les données structurées Organization / WebSite / WebPage. L’entité utilise uniquement les coordonnées EON connues ; aucune adresse ou information juridique n’est inventée.
 

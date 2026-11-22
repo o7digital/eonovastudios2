@@ -20,17 +20,17 @@ Directus peut demander de déclarer le propriétaire du projet et d'accepter ses
 
 Les champs texte conservent leur mise en forme inline : `<br>`, `<em>`, `<strong>`, `<span>`. Les scripts, attributs et autres balises sont supprimés au rendu. Les liens de navigation, l’adresse de contact EON, les métadonnées SEO et les animations restent dans le code. Le Studio propose désormais une édition visuelle sur la page, un logo personnalisé, des photos et des vidéos avec cadrage ; voir le guide du Studio.
 
-Dans le Studio, **Enregistrer la rubrique** conserve les contenus ; la publication automatique reste désactivée jusqu'à sa connexion ultérieure. Dans Directus technique, le bouton **Publier** d'une fiche enregistre également son contenu. Le Flow **Publier le site** est préparé, mais ne peut pas aboutir sans le jeton Vercel permanent. Une fois connecté, il génère le site avec les fiches marquées Publié. La version précédente reste accessible jusqu'au build réussi. Une erreur de traduction, d'image ou de lecture du CMS fait échouer le nouveau build.
+Dans le Studio, **Guardar cambios** conserve les contenus et **Publicar mi sitio** lance leur publication sur le site. Dans Directus technique, le bouton **Publier** d’une fiche enregistre son contenu ; le Flow **Publier le site** appelle le même endpoint de publication. Seules les fiches marquées Publié entrent dans le build. La version précédente reste accessible jusqu’au build réussi. Une erreur de traduction, d’image ou de lecture du CMS fait échouer le nouveau build.
 
-## Connexion de la publication automatique
+## Publication depuis le Studio
 
-Les variables de production Vercel `DIRECTUS_URL`, `DIRECTUS_READ_TOKEN` et `CMS_PUBLISH_SECRET` sont configurées. Le Flow et la fonction `POST /api/cms-publish` sont préparés.
+Les variables Vercel Production `DIRECTUS_URL`, `DIRECTUS_READ_TOKEN`, `CMS_PUBLISH_SECRET` et `CMS_DEPLOY_HOOK_URL` sont configurées. Le service Studio utilise `STUDIO_PUBLISH_ENABLED=true` et le même `CMS_PUBLISH_SECRET`.
 
-**Il manque un jeton permanent Vercel.** La session CLI autorise les déploiements manuels mais refuse la création d'un jeton (`Cannot create tokens for this app`, HTTP 403). Son jeton temporaire expire et n'est pas utilisé comme secret de publication.
+Le Deploy Hook privé **EON Studio publication** cible `dev`, également définie comme branche de production Vercel pour correspondre aux sources du site public. Le hook recharge les contenus CMS même lorsque le commit n’a pas changé. Son URL reste uniquement dans les variables serveur Vercel ; elle ne doit apparaître ni dans Git ni dans le navigateur. Les publications via le hook ne nécessitent pas de jeton permanent Vercel. L’ancien chemin `VERCEL_DEPLOY_TOKEN` reste compatible mais n’est pas requis.
 
-Créer un jeton dédié depuis https://vercel.com/account/settings/tokens, avec accès au projet `eon2`, puis l'enregistrer dans la variable **Production** `VERCEL_DEPLOY_TOKEN` et redéployer. Le jeton reste uniquement dans la fonction serveur Vercel. Ne jamais le placer dans Directus, dans Git ou dans une variable `PUBLIC_*`. Après connexion, vérifier le Flow jusqu'à un déploiement `READY`, puis mettre à jour le panneau d'accueil avec `CMS_PUBLISH_READY=true` lors du bootstrap.
+L’endpoint `POST /api/cms-publish` refuse les appels sans le secret dédié, fixe le projet et limite les appels rapprochés dans chaque instance. Le Studio vérifie les permissions du compte connecté et demande confirmation. Une réponse acceptée indique le lancement du build, pas sa réussite : attendre la fin de la génération avant de vérifier le site public.
 
-L'endpoint refuse les appels sans le secret dédié, fixe le projet, la branche `dev` et la cible production, et limite les publications rapprochées. Il ne modifie pas la branche de production Git configurée dans Vercel. Les futurs commits de `dev` doivent être vérifiés par GitHub pour les déploiements via API ; utiliser une signature reconnue ou `createCommitOnBranch` avec contrôle du commit parent. Ne pas désactiver l'exigence de commits vérifiés.
+Les commits de `dev` utilisés par l’intégration Git doivent être vérifiés par GitHub ; utiliser une signature reconnue ou `createCommitOnBranch` avec contrôle du commit parent. Ne pas désactiver l’exigence de commits vérifiés.
 
 Publication manuelle avec les accès CLI existants :
 
