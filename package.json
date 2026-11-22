@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node --env-file-if-exists=.env scripts/prepare-cms.mjs && astro dev",
-    "build": "node --env-file-if-exists=.env scripts/prepare-cms.mjs && astro build",
+    "build": "node --env-file-if-exists=.env scripts/prepare-cms.mjs && astro build && node scripts/check-seo.mjs",
     "preview": "astro preview",
     "test": "node --test tests/*.test.mjs cms/studio/*.test.mjs"
   },
@@ -15,6 +15,7 @@
     "@fontsource-variable/space-grotesk": "^5.2.0",
     "astro": "^7.4.0",
     "parse5": "^8.1.1",
-    "sanitize-html": "^2.18.1"
+    "sanitize-html": "^2.18.1",
+    "sharp": "0.35.5"
   }
 }

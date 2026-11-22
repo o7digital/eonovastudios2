@@ -1,15 +1,15 @@
 ---
 import '../styles/global.css';
 import Localized from '../components/Localized.astro';
-import {home, privacy, languages} from '../i18n';
+import {pageSeo, isIndexable, schemaJson} from '../lib/seo.mjs';
+import {getCms} from '../lib/cms.mjs';
 import OliviaAI from '../components/OliviaAI.astro';
 import '@fontsource-variable/dm-sans';
 import '@fontsource-variable/space-grotesk';
 const {lang = 'es', legal = false, pageTitle} = Astro.props;
-const url = 'https://eonovastudios.com' + (legal ? privacy(lang) : home(lang));
-const production = process.env.SITE_INDEXABLE === 'true';
-const title = pageTitle ? `${pageTitle} · EON NOVA STUDIOS` : ({es:'EON NOVA STUDIOS · Diseño digital y animación', en:'EON NOVA STUDIOS · Digital design & animation', fr:'EON NOVA STUDIOS · Design digital & animation'}[lang as 'es'|'en'|'fr']);
-const description = {es:'Estudio de diseño gráfico, digital y animación 2D y 3D. Identidad de marca, diseño web y narrativa visual.', en:'Graphic design, digital design and 2D and 3D animation studio. Brand identity, web design and visual storytelling.', fr:'Studio de design graphique, digital et d’animation 2D et 3D. Identité de marque, design web et narration visuelle.'}[lang as 'es'|'en'|'fr'];
+const {media} = await getCms();
+const seo = pageSeo({lang,legal,pageTitle,logo:media.logo?.src});
+const production = isIndexable();
 ---
 <!doctype html>
 <html lang={lang}>
@@ -17,19 +17,28 @@ const description = {es:'Estudio de diseño gráfico, digital y animación 2D y 
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="theme-color" content="#101010" />
-<meta name="description" content={description} />
-{!production && <meta name="robots" content="noindex, nofollow" />}
-<title>{title}</title>
+<meta name="description" content={seo.description} />
+<meta name="robots" content={production ? 'index, follow, max-image-preview:large' : 'noindex, nofollow'} />
+<title>{seo.title}</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-<link rel="canonical" href={url} />
-{languages.map(l => <link rel="alternate" hreflang={l} href={'https://eonovastudios.com' + (legal ? privacy(l) : home(l))} />)}
-<link rel="alternate" hreflang="x-default" href={'https://eonovastudios.com' + (legal ? privacy('es') : '/')} />
+<link rel="canonical" href={seo.url} />
+{seo.alternates.map(link => <link rel="alternate" hreflang={link.lang} href={link.url} />)}
 <meta property="og:type" content="website" />
-<meta property="og:locale" content={{es:"es_MX",en:"en_US",fr:"fr_FR"}[lang as 'es'|'en'|'fr']} />
-<meta property="og:title" content={title} />
-<meta property="og:description" content={description} />
-<meta property="og:url" content={url} />
-<meta property="og:image" content="https://eonovastudios.com/og-image.png" />
+<meta property="og:site_name" content="EON NOVA STUDIOS" />
+<meta property="og:locale" content={seo.locale} />
+<meta property="og:title" content={seo.title} />
+<meta property="og:description" content={seo.description} />
+<meta property="og:url" content={seo.url} />
+<meta property="og:image" content={seo.image} />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content={seo.imageAlt} />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={seo.title} />
+<meta name="twitter:description" content={seo.description} />
+<meta name="twitter:image" content={seo.image} />
+<meta name="twitter:image:alt" content={seo.imageAlt} />
+<script type="application/ld+json" set:html={schemaJson(seo.schema)} />
 </head>
 <body><slot /><Localized lang={lang}><OliviaAI lang={lang} /></Localized><script>if (document.querySelector('#lab-canvas')) import('../scripts/studio.js');</script></body>
 </html>

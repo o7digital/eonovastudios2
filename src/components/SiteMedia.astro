@@ -1,6 +1,14 @@
 ---
 const {media, lang = 'es', class: className, eager = false} = Astro.props;
+const sizes = className === 'cms-hero-image'
+  ? '(max-width: 680px) 180vw, (max-width: 1000px) 130vw, 100vw'
+  : className === 'cms-studio-image'
+    ? '(max-width: 680px) 88vw, 42vw'
+    : '(max-width: 680px) 88vw, 44vw';
 ---
 {media && (media.type?.startsWith('video/') ?
   <video class={className} style={`object-fit:${media.fit || 'cover'};object-position:${media.position || '50% 50%'}`} controls playsinline preload="metadata" aria-label={media.alt[lang]}><source src={media.src} type={media.type}/><a href={media.src}>{media.alt[lang]}</a></video> :
-  <img class={className} style={`object-fit:${media.fit || 'cover'};object-position:${media.position || '50% 50%'}`} src={media.src} alt={media.alt[lang]} loading={eager ? 'eager' : 'lazy'} fetchpriority={eager ? 'high' : undefined}/>)}
+  <picture style="display:contents">
+    {media.avifSrcset && <source type="image/avif" srcset={media.avifSrcset} sizes={sizes}/>}
+    <img class={className} style={`object-fit:${media.fit || 'cover'};object-position:${media.position || '50% 50%'}${className === 'cms-studio-image' ? ';height:auto' : ''}`} src={media.src} srcset={media.srcset} sizes={media.srcset ? sizes : undefined} width={media.width} height={media.height} alt={media.alt[lang]} loading={eager ? 'eager' : 'lazy'} decoding="async" fetchpriority={eager ? 'high' : undefined}/>
+  </picture>)}

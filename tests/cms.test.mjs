@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { applyCopy, cleanCopy, loadCms, validateRows } from '../src/lib/cms.mjs';
 import publish from '../api/cms-publish.mjs';
+import sharp from 'sharp';
 
 test('CMS edits only text and inline fragments, never attributes or scripts', () => {
   const rows = [{source:'Hola',es:'Nuevo <em>texto</em><script>alert(1)</script>',en:'Hello new',fr:'Bonjour neuf'}];
@@ -50,12 +51,13 @@ test('CMS publishes private video assets and logo framing, rejects invalid types
   const folder=await mkdtemp(join(tmpdir(),'eon-cms-'));t.after(()=>rm(folder,{recursive:true,force:true}));
   let media=[{placement:'studio',image:{id:'video-file',type:'video/mp4'},alt_es:'Video',alt_en:'Video',alt_fr:'Vidéo',position:'25% 75%',fit:'contain'}];
   const bytes=Buffer.from('video-fixture');
+  const png=await sharp({create:{width:80,height:40,channels:4,background:{r:25,g:100,b:40,alpha:0.5}}}).png().toBuffer();
   const fetcher=async(url,options)=>{
     assert.equal(options.headers.Authorization,'Bearer private');
     const path=new URL(url).pathname;
     if(path==='/items/site_texts')return Response.json({data:[{source:'Hola',es:'Hola',en:'Hello',fr:'Bonjour'}]});
     if(path==='/items/section_media')return Response.json({data:media});
-    return new Response(bytes);
+    return new Response(media[0]?.image.type==='image/png'?png:bytes);
   };
   const options={url:'https://cms.example',token:'private',fetcher,output:pathToFileURL(folder+'/')};
   const loaded=await loadCms(options);
@@ -64,7 +66,7 @@ test('CMS publishes private video assets and logo framing, rejects invalid types
   assert.deepEqual(await readFile(join(folder,loaded.media.studio.src.split('/').at(-1))),bytes);
   media=[{...media[0],placement:'logo'}];await assert.rejects(loadCms(options),/logo/);
   media=[{...media[0],image:{id:'logo',type:'image/png'},position:'101% 0%'}];await assert.rejects(loadCms(options),/position/);
-  media=[{...media[0],position:'50% 50%',fit:'contain'}];assert.equal((await loadCms(options)).media.logo.type,'image/png');
+  media=[{...media[0],position:'50% 50%',fit:'contain'}];assert.equal((await loadCms(options)).media.logo.type,'image/webp');
   media.push(media[0]);await assert.rejects(loadCms(options),/duplicate/);
 });
 

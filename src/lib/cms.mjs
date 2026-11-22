@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseFragment, serialize } from 'parse5';
 import sanitizeHtml from 'sanitize-html';
+import {prepareImage} from './images.mjs';
 
 export const cleanCopy = value => sanitizeHtml(String(value), {
   allowedTags: ['br', 'em', 'strong', 'span'], allowedAttributes: {},
@@ -87,9 +88,13 @@ export async function loadCms({ url, token, fetcher = fetch, output = pathToFile
     if (!response.ok) throw new Error(`CMS image unavailable (${response.status}).`);
     const bytes = Buffer.from(await response.arrayBuffer());
     if (bytes.length > (row.image.type.startsWith('video/') ? 100 : 25) * 1024 * 1024 || !bytes.length) throw new Error('Website media exceeds its size limit (images: 25 MB, videos: 100 MB).');
-    const name = `${createHash('sha256').update(bytes).digest('hex').slice(0, 24)}.${extension}`;
-    await writeFile(new URL(name, output), bytes);
-    media[row.placement] = { type: row.image.type, position: row.position || '50% 50%', fit: row.fit || 'cover', src: `/_cms/${name}`, alt: { es: row.alt_es, en: row.alt_en, fr: row.alt_fr } };
+    let asset;
+    if(row.image.type.startsWith('image/')) asset=await prepareImage(bytes,{output,placement:row.placement,extension});
+    else {
+      const name = `${createHash('sha256').update(bytes).digest('hex').slice(0, 24)}.${extension}`;
+      await writeFile(new URL(name, output), bytes);asset={type:row.image.type,src:`/_cms/${name}`};
+    }
+    media[row.placement] = { ...asset, position: row.position || '50% 50%', fit: row.fit || 'cover', alt: { es: row.alt_es, en: row.alt_en, fr: row.alt_fr } };
   }
   return { rows, media };
 }

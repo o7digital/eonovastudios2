@@ -70,3 +70,7 @@ La configuration du service Directus est reproduite dans `railway.json`. Railway
 6. Garder Railway sans nouvelles écritures pendant la validation. Pour revenir en arrière, rétablir l'ancienne URL et redéployer. Les nouvelles écritures sur le VPS nécessitent une resynchronisation avant tout retour.
 
 Les variables de publication restent dans Vercel ; le Flow restauré conserve son URL et son secret d'appel, donc la migration du CMS ne nécessite pas de changer le site public ni son DNS.
+
+## Images optimisées pour le site
+
+Le build produit les variantes WebP et AVIF des images fixes (largeur maximale 2560 px, sans agrandissement). Le logo est converti en WebP sans perte, jusqu’à 720 px. Les fichiers originaux Directus, le cadrage et le réglage cover/contain sont conservés. Les images animées restent dans leur format d’origine pour préserver leur animation. Les vidéos ne sont pas réencodées. Sharp limite le décodage à 64 mégapixels ; un fichier illisible ou trop grand bloque le nouveau build en conservant la version déjà publiée.
