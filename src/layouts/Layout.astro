@@ -7,7 +7,7 @@ import {logoCss,logoStyle} from '../../cms/studio/public/logo.js';
 import OliviaAI from '../components/OliviaAI.astro';
 import '@fontsource-variable/dm-sans';
 import '@fontsource-variable/space-grotesk';
-const {lang = 'es', legal = false, pageTitle,path,description} = Astro.props;
+const {lang = 'es', legal = false, home = false, pageTitle,path,description} = Astro.props;
 const {media} = await getCms();
 const seo = pageSeo({lang,legal,pageTitle,path,description,logo:media.logo?.src});
 const production = isIndexable();
@@ -42,5 +42,5 @@ const production = isIndexable();
 <meta name="twitter:image:alt" content={seo.imageAlt} />
 <script type="application/ld+json" set:html={schemaJson(seo.schema)} />
 </head>
-<body><slot /><Localized lang={lang}><OliviaAI lang={lang} /></Localized><script>if (document.querySelector('#lab-canvas')) import('../scripts/studio.js');</script></body>
+<body class={home?'home-page':undefined}><slot /><Localized lang={lang}><OliviaAI lang={lang} /></Localized><script>if (document.querySelector('#lab-canvas')) import('../scripts/studio.js');</script></body>
 </html>

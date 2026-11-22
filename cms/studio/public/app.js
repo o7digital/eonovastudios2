@@ -1,4 +1,6 @@
-import {visualPageMarkup,mountVisualPage} from './visual-page.js?v=translate-1';
+import {defaultLayout} from './layout-data.js?v=layout-1';
+import {mountLayoutTools} from './layout-ui.js?v=layout-1';
+import {visualPageMarkup,mountVisualPage} from './visual-page.js?v=layout-1';
 import {logoSize,logoImageUrl,prepareLogoPreview} from './logo.js?v=brand-4';
 import {mediaAlt,mediaLabels} from './media-copy.js?v=studio-2';
 import {mountEditors} from './editor.js?v=color-1';
@@ -33,11 +35,11 @@ const sections = [
 const languages = {es:{name:'Español',label:'ES'},en:{name:'Inglés',label:'EN'},fr:{name:'Francés',label:'FR'}};
 const placementLabels = {logo:'Mi logo · encabezado y pie',hero:'Inicio · imagen o video principal',studio:'El estudio',graphic:'Diseño gráfico',digital:'Diseño digital'};
 const statusLabel = {published:'Incluir en el sitio',draft:'Borrador',archived:'Archivado'};
-const state = {texts:[],media:[],drafts:new Map(),route:'overview',lang:'es',filter:'',busy:false,profile:{},publishReady:false,canEdit:false,autoTranslate:false,mediaEdit:null,mediaDrafts:new Map(),mediaUploading:false,visualPrefs:{width:1440,mode:'edit'}};
+const state = {texts:[],media:[],drafts:new Map(),route:'overview',lang:'es',filter:'',busy:false,profile:{},publishReady:false,canEdit:false,autoTranslate:false,layout:defaultLayout(),layoutDraft:null,layoutReady:false,mediaEdit:null,mediaDrafts:new Map(),mediaUploading:false,visualPrefs:{width:1440,mode:'edit'}};
 const workspace=createWorkspaceUI({api,toast,confirmDialog,isCurrent:route=>state.route===route});
 const journalUI=createJournalUI({api,upload:uploadMedia,canEdit:()=>state.canEdit,autoTranslate:()=>state.autoTranslate,canPublish:()=>state.publishReady&&!allDirty(),onPublish:publish,isCurrent:route=>state.route===route&&!$('#studio-view').hidden,toast,confirmDialog});
 const socialLinksUI=createSocialLinksUI({api,canEdit:()=>state.canEdit,canPublish:()=>state.publishReady&&!allDirty(),onPublish:publish,isCurrent:()=>state.route==='social-links'&&!$('#studio-view').hidden,toast});
-let toastTimer, previewBlob,visualUI,disposeFieldEditors;
+let toastTimer, previewBlob,visualUI,disposeFieldEditors,layoutUI;
 let studioLogoKey='',studioLogoVersion=0;
 function setBrandImage(image,src,custom){
   image.closest('.wordmark').toggleAttribute('data-custom-logo',custom);
@@ -62,7 +64,7 @@ async function api(path, options = {}) {
   if(!response.ok){if(response.status===401 && path!=='/api/login')showLogin();throw new Error(result.error || 'No se pudo completar esta acción.');}
   return result;
 }
-function showLogin(){ disposeFieldEditors?.();$('#login-view').hidden=false;$('#studio-view').hidden=true;state.drafts.clear();state.mediaDrafts.clear();visualUI?.destroy();visualUI=null;workspace.reset();journalUI.reset();socialLinksUI.reset();state.profile={};state.texts=[];state.media=[];studioLogoKey='';studioLogoVersion++;$('#password').value='';syncPublishedLogo(); }
+function showLogin(){ disposeFieldEditors?.();$('#login-view').hidden=false;$('#studio-view').hidden=true;state.drafts.clear();state.mediaDrafts.clear();state.layoutDraft=null;layoutUI?.destroy();layoutUI=null;visualUI?.destroy();visualUI=null;workspace.reset();journalUI.reset();socialLinksUI.reset();state.profile={};state.texts=[];state.media=[];studioLogoKey='';studioLogoVersion++;$('#password').value='';syncPublishedLogo(); }
 function nav(){
   const links=[{id:'overview',name:'Vista general',icon:'home'},{id:'visual',name:'Editar mi página',icon:'hero'},...sections.map(s=>({...s,icon:s.id})),...journalDefinitions.map(d=>({id:'journal-'+d.id,name:d.labels.es,icon:'media'})),{id:'social-links',name:'Enlaces de redes',icon:'interface'},{id:'media',name:'Fotos, videos y logo',icon:'media'},{id:'account',name:'Mi cuenta',icon:'interface'}];
   $('#main-nav').innerHTML=links.map(s=>`${s.id==='media'?'<div class="nav-separator"></div>':''}<a class="nav-item ${state.route===s.id?'active':''}" href="#${s.id}" ${state.route===s.id?'aria-current="page"':''}>${icon(s.icon)}<span>${s.name}</span>${(['overview','account','social-links'].includes(s.id)||s.id.startsWith('journal-'))?'':`<small class="nav-count">${s.id==='visual'?state.texts.length:s.id==='media'?state.media.filter(row=>row.status==='published').length:state.texts.filter(row=>row.section===s.id).length}</small>`}</a>`).join('');
@@ -87,7 +89,7 @@ function currentRows(){return state.route==='visual'?state.texts:state.texts.fil
 function values(row){return {...row,...state.drafts.get(row.id)};}
 function mediaOf(placement){return state.mediaDrafts.get(placement)||state.media.find(row=>row.placement===placement);}
 function currentPlacements(){return ['visual','media'].includes(state.route)?Object.keys(placementLabels):({hero:['hero'],studio:['studio'],services:['graphic','digital'],footer:['logo'],interface:['logo']}[state.route]||[]);}
-function allDirty(){return state.drafts.size+state.mediaDrafts.size+(journalUI.hasUnsaved()?1:0)+(socialLinksUI.hasUnsaved()?1:0);}
+function allDirty(){return state.drafts.size+state.mediaDrafts.size+(journalUI.hasUnsaved()?1:0)+(socialLinksUI.hasUnsaved()?1:0)+(state.layoutDraft?1:0);}
 function mediaInput(row){return {placement:row.placement,image:row.image.id,status:row.status||'published',fit:row.fit||(row.placement==='logo'?'contain':'cover'),position:row.position||'50% 50%',...(row.placement==='logo'?{logo_size:logoSize(row.logo_size)}:{}),...Object.fromEntries(Object.keys(languages).map(lang=>['alt_'+lang,mediaAlt(row.placement,lang,row['alt_'+lang])]))};}
 function recordMediaDraft(placement,fields){
  const original=state.media.find(row=>row.placement===placement),row={placement,status:'published',...mediaOf(placement),...fields};
@@ -108,7 +110,7 @@ function editableCard(row){
   return `<article class="text-card ${long?'long':''} ${state.drafts.has(row.id)?'changed':''}" data-card="${row.id}"><div class="field-head"><label id="label-${row.id}" class="field-label" for="text-${row.id}">${esc(title)}</label><span class="field-status ${esc(data.status)}" data-badge="${row.id}">${data.status==='published'?'Listo para el sitio':data.status==='draft'?'Borrador':'Archivado'}</span></div>${state.lang!=='es'?`<p class="source-hint">Español · ${esc(plain(data.es))}</p>`:''}<div class="visual-editor"><div class="rich-toolbar" role="toolbar" aria-label="Formato del texto"><button type="button" data-format="bold" title="Negrita (Ctrl/Cmd+B)" aria-label="Negrita"><strong>B</strong></button><button type="button" data-format="italic" title="Énfasis (Ctrl/Cmd+I)" aria-label="Énfasis"><em>Énfasis</em></button><span class="toolbar-divider"></span><button type="button" data-format="undo" aria-label="Deshacer" title="Deshacer">↶</button><button type="button" data-format="redo" aria-label="Rehacer" title="Rehacer">↷</button><span class="editor-mode">VISTA VISUAL</span></div>${colorToolsMarkup()}<div id="text-${row.id}" class="rich-field ${long?'rich-long':''}" data-rich-text="${row.id}" role="textbox" aria-multiline="true" aria-labelledby="label-${row.id}" lang="${state.lang}" spellcheck="true">${esc(data[state.lang])}</div><div class="rich-bottom"><span>Formato listo para el sitio</span><span class="editor-length"></span></div></div><div class="field-foot"><span><i class="editable-dot"></i>${textEditable()?'Editable':state.autoTranslate?'Traducción automática · solo lectura':'Solo lectura'} · ${languages[state.lang].name}</span><select aria-label="Visibilidad: ${esc(title.slice(0,90))}" data-status="${row.id}" ${!state.canEdit?'disabled':''}>${Object.entries(statusLabel).map(([value,label])=>`<option value="${value}" ${value===data.status?'selected':''}>${label}</option>`).join('')}</select></div></article>`;
 }
 function saveBar(){return `<div class="editor-savebar"><div><strong id="save-summary">${pendingSummary()}</strong><small>Guarda tus cambios y pulsa Publicar mi sitio para actualizar la página pública.</small></div><div class="savebar-actions"><button class="button secondary" data-revert ${!sectionDirty()?'disabled':''}>Descartar cambios</button><button class="button primary" data-save ${!sectionDirty()||!state.canEdit?'disabled':''}>Guardar cambios <span>↗</span></button><button class="button secondary" data-publish ${!state.publishReady||allDirty()||!state.canEdit?'disabled':''}>Publicar mi sitio <span>↗</span></button></div></div>`;}
-function sectionDirty(){return currentRows().filter(row=>state.drafts.has(row.id)).length+currentPlacements().filter(placement=>state.mediaDrafts.has(placement)).length;}
+function sectionDirty(){return (state.layoutDraft?1:0)+currentRows().filter(row=>state.drafts.has(row.id)).length+currentPlacements().filter(placement=>state.mediaDrafts.has(placement)).length;}
 function pendingSummary(){const n=sectionDirty();return n?`${n} cambio${n!==1?'s':''} sin guardar`:'Todos tus cambios están guardados';}
 function editor(){
   const section=sections.find(s=>s.id===state.route);
@@ -138,7 +140,7 @@ async function changePassword(event){
 }
 function render(){
   syncStudioLogo();journalUI.unmount();socialLinksUI.unmount();
-  disposeFieldEditors?.();visualUI?.destroy();visualUI=null;nav();$('#breadcrumb').textContent=state.route==='social-links'?'Enlaces de redes':state.route==='account'?'Mi cuenta':state.route==='visual'?'Editar mi página':state.route==='overview'?'Vista general':state.route==='media'?'Fotos, videos y logo':(sections.find(s=>s.id===state.route)||workspaceSections.find(s=>s.id===state.route))?.name||journalDefinitions.find(d=>'journal-'+d.id===state.route)?.labels.es;
+  disposeFieldEditors?.();layoutUI?.destroy();layoutUI=null;visualUI?.destroy();visualUI=null;nav();$('#breadcrumb').textContent=state.route==='social-links'?'Enlaces de redes':state.route==='account'?'Mi cuenta':state.route==='visual'?'Editar mi página':state.route==='overview'?'Vista general':state.route==='media'?'Fotos, videos y logo':(sections.find(s=>s.id===state.route)||workspaceSections.find(s=>s.id===state.route))?.name||journalDefinitions.find(d=>'journal-'+d.id===state.route)?.labels.es;
   if(state.route==='social-links'){socialLinksUI.open();return;}
   if(state.route.startsWith('journal-')){journalUI.open(state.route);return;}
   if(workspaceSections.some(s=>s.id===state.route)){workspace.open(state.route);return;}
@@ -149,11 +151,12 @@ function render(){
   disposeFieldEditors=mountEditors($('#content'),{editable:textEditable(),onChange:(id,value)=>{recordDraft(id,state.lang,value);updatePending();}});
   $('#content').querySelectorAll('[data-status]').forEach(input=>input.addEventListener('change',()=>{recordDraft(input.dataset.status,'status',input.value);updatePending();}));
   if(!$('#content .visual-page'))$('#content').querySelector('[data-save]')?.addEventListener('click',saveTexts);
-  $('#content').querySelector('[data-revert]')?.addEventListener('click',async()=>{if(await confirmDialog('¿Descartar los cambios?','Los textos guardados se conservan. Solo se descartan los cambios sin guardar de esta sección.')){for(const row of currentRows())state.drafts.delete(row.id);for(const placement of currentPlacements())state.mediaDrafts.delete(placement);render();}});
+  $('#content').querySelector('[data-revert]')?.addEventListener('click',async()=>{if(await confirmDialog('¿Descartar los cambios?','Los textos guardados se conservan. Solo se descartan los cambios sin guardar de esta sección.')){state.layoutDraft=null;for(const row of currentRows())state.drafts.delete(row.id);for(const placement of currentPlacements())state.mediaDrafts.delete(placement);render();}});
   $('#text-search')?.addEventListener('input',event=>{state.filter=event.target.value;filterCards();});
   $('#content').querySelectorAll('[data-edit-media]').forEach(button=>button.addEventListener('click',()=>openMedia(button.dataset.editMedia)));
   $('#content').querySelectorAll('[data-archive-media]').forEach(button=>button.addEventListener('click',()=>archiveMedia(button.dataset.archiveMedia)));
   if($('#content .visual-page'))visualUI=mountVisualPage($('#content .visual-page'),{lang:state.lang,rows:currentRows(),valueOf:values,onText:(id,lang,value)=>{recordDraft(id,lang,value);updatePending();},onMediaOptions:openMedia,onPhoto:stageVisualPhoto,onMediaChange:recordMediaDraft,onSave:saveTexts,canEdit:state.canEdit,canEditText:textEditable(),mediaOf,placements:currentPlacements(),anchor:sections.find(section=>section.id===state.route)?.anchor,prefs:state.visualPrefs,dirtyCount:sectionDirty,busy:()=>state.busy||state.mediaUploading});
+  if($('#content .visual-page'))layoutUI=mountLayoutTools($('#content .visual-page'),{value:()=>state.layoutDraft||state.layout,frame:$('#content iframe'),editable:()=>state.canEdit&&state.layoutReady&&!state.busy&&!state.mediaUploading,onChange:next=>{const value=next||defaultLayout();state.layoutDraft=JSON.stringify(value)===JSON.stringify(state.layout)?null:value;updatePending();}});
   filterCards();if($('#save-summary'))updatePending();
 }
 function recordDraft(id,field,value){
@@ -171,7 +174,7 @@ function updatePending(){
   if($('#save-summary'))$('#save-summary').textContent=pendingSummary();
   if($('[data-save]'))$('[data-save]').disabled=!sectionDirty()||!editable;if($('[data-revert]'))$('[data-revert]').disabled=!sectionDirty()||state.busy||state.mediaUploading;
   $('#content').querySelectorAll('[data-publish]').forEach(button=>button.disabled=!state.publishReady||allDirty()>0||state.busy||state.mediaUploading||!state.canEdit);
-  visualUI?.refresh();
+  visualUI?.refresh();layoutUI?.refresh();
   for(const row of currentRows()){
     const data=values(row);$(`[data-card="${row.id}"]`)?.classList.toggle('changed',state.drafts.has(row.id));
     const badge=$(`[data-badge="${row.id}"]`);if(badge){badge.className='field-status '+data.status;badge.textContent=data.status==='published'?'Listo para el sitio':data.status==='draft'?'Borrador':'Archivado';}
@@ -182,18 +185,20 @@ async function saveTexts(){
   if(state.busy||state.mediaUploading)return;
   const items=currentRows().filter(row=>state.drafts.has(row.id)).map(row=>({id:row.id,...state.drafts.get(row.id)}));
   const changedMedia=currentPlacements().filter(placement=>state.mediaDrafts.has(placement)).map(placement=>state.mediaDrafts.get(placement));
-  if(!items.length&&!changedMedia.length)return;
+  if(!items.length&&!changedMedia.length&&!state.layoutDraft)return;
   if(items.some(row=>Object.keys(languages).some(lang=>row[lang]!==undefined&&!row[lang].trim())))return toast('Conserva un texto en cada idioma.',true);
   state.busy=true;updatePending();const button=$('[data-save]');button.textContent=state.autoTranslate?'Traduciendo y guardando…':'Guardando…';
   try{
     const rows=items.length?await api('/api/texts',{method:'PATCH',body:JSON.stringify({items})}):[];
     for(const row of rows){const index=state.texts.findIndex(item=>item.id===row.id);state.texts[index]=row;state.drafts.delete(row.id);}
     for(const draft of changedMedia){const saved=await api('/api/media'+(draft.id?'/'+draft.id:''),{method:draft.id?'PATCH':'POST',body:JSON.stringify(mediaInput(draft))});state.media=state.media.filter(row=>row.id!==saved.id);state.media.push(saved);state.mediaDrafts.delete(draft.placement);}
+    if(state.layoutDraft){const saved=await api('/api/layout',{method:'PATCH',body:JSON.stringify(state.layoutDraft)});state.layout=saved.config;state.layoutDraft=null;}
     toast('Cambios guardados. Publica tu sitio cuando todo esté listo.');
   }catch(error){toast(error.message,true);}finally{state.busy=false;render();}
 }
 async function load(){
   const data=await api('/api/bootstrap');Object.assign(state,data);
+  try{state.layout=(await api('/api/layout')).config;state.layoutReady=true;}catch{state.layoutReady=false;}
   const actualName=data.profile.name && data.profile.name!=='Admin User'?data.profile.name:'Mi Studio';
   $('#user-name').textContent=actualName;$('#user-email').textContent=data.profile.email;$('#user-avatar').textContent=(actualName[0]||'E').toUpperCase();
   $('#login-view').hidden=true;$('#studio-view').hidden=false;route();

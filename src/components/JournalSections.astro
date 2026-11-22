@@ -9,5 +9,5 @@ const empty={es:'Nuevas publicaciones próximamente.',en:'New publications comin
 ---
 {data.sections.filter(s=>s.enabled).map(section=>{
  const definition=journalDefinitions.find(d=>d.id===section.id),entries=data.entries.filter(e=>e.section===section.id).slice(0,3);
- return <section class="section-pad journal-public-section" data-journal id={definition.paths[lang]}><div class="journal-public-heading"><h2>{definition.labels[lang]}</h2><a href={journalPath(section.id,lang)}>{all} ↗</a></div>{entries.length?<JournalCards entries={entries} lang={lang}/>:<p class="journal-empty">{empty}</p>}</section>;
+ return <section class="section-pad journal-public-section" data-journal data-journal-section={section.id} id={definition.paths[lang]}><div class="journal-public-heading"><h2>{definition.labels[lang]}</h2><a href={journalPath(section.id,lang)}>{all} ↗</a></div>{entries.length?<JournalCards entries={entries} lang={lang}/>:<p class="journal-empty">{empty}</p>}</section>;
 })}

@@ -1,0 +1,11 @@
+export const layoutGroups={sections:[['inicio','Inicio','#inicio'],['universos','Motion Lab','#universos'],['studio','El estudio','#studio'],['servicios','Servicios','#servicios'],['contacto','Contacto','#contacto'],['blog','Blog','[data-journal-section="blog"]'],['book','Mi Book','[data-journal-section="book"]'],['news','Noticias','[data-journal-section="news"]']],hero:[['hero-top','Presentación','.hero-top'],['hero-copy','Título, descripción y botón','.hero-copy'],['hero-bottom','Disciplinas y movimiento','.hero-bottom'],['hero-word','EON NOVA grande','.hero-word']]};
+export const defaultLayout=()=>({sections:layoutGroups.sections.map(r=>r[0]),hero:layoutGroups.hero.map(r=>r[0]),spacing:{}});
+export function validateLayout(value){
+ if(!value||typeof value!=='object'||Object.keys(value).some(k=>!['sections','hero','spacing'].includes(k)))throw Error('Revisa la organización de la página.');
+ for(const group of ['sections','hero']){const ids=layoutGroups[group].map(r=>r[0]);if(!Array.isArray(value[group])||value[group].length!==ids.length||new Set(value[group]).size!==ids.length||value[group].some(id=>!ids.includes(id)))throw Error('Conserva todas las secciones una sola vez.');}
+ if(!value.spacing||typeof value.spacing!=='object'||Array.isArray(value.spacing)||Object.entries(value.spacing).some(([id,v])=>!Object.values(layoutGroups).flat().some(r=>r[0]===id)||!Number.isInteger(v)||v<0||v>240))throw Error('El espacio debe estar entre 0 y 240 px.');
+ return structuredClone(value);
+}
+export function applyLayoutDocument(doc,layout){
+ for(const [group,defs]of Object.entries(layoutGroups)){const parent=doc.querySelector(group==='hero'?'.hero':'main');if(!parent)continue;const nodes=defs.map(([id,,selector])=>{const node=parent.querySelector(selector);if(node&&node.parentElement===parent){node.dataset.layoutBlock=id;node.style.marginBlockStart=layout.spacing[id]===undefined?'':layout.spacing[id]+'px';return node;}}).filter(Boolean).sort((a,b)=>a.compareDocumentPosition(b)&4?-1:1);const markers=nodes.map(node=>{const marker=doc.createComment('layout');node.replaceWith(marker);return marker;});const ordered=layout[group].map(id=>nodes.find(n=>n.dataset.layoutBlock===id)).filter(Boolean);markers.forEach((marker,i)=>marker.replaceWith(ordered[i]));}
+}

@@ -5,7 +5,7 @@
   "engines": { "node": ">=22" },
   "scripts": {
     "start": "node server.mjs",
-    "check": "node --check server.mjs && node --check translation.mjs && node --check provision-accounts.mjs && node --check workspace.mjs && node --check social-media.mjs && node --check social-links.mjs && node --check public/social-links-data.js && node --check public/social-links-ui.js && node --check journal.mjs && node --check public/journal-data.js && node --check public/journal-ui.js && node --check public/text-color.js && node --check public/editor.js && node --check public/logo.js && node --check public/media-copy.js && node --check public/visual-page.js && node --check public/app.js && node --check public/workspace-ui.js && node --check public/social-callback.js",
+    "check": "node --check public/layout-data.js && node --check public/layout-ui.js && node --check server.mjs && node --check translation.mjs && node --check provision-accounts.mjs && node --check workspace.mjs && node --check social-media.mjs && node --check social-links.mjs && node --check public/social-links-data.js && node --check public/social-links-ui.js && node --check journal.mjs && node --check public/journal-data.js && node --check public/journal-ui.js && node --check public/text-color.js && node --check public/editor.js && node --check public/logo.js && node --check public/media-copy.js && node --check public/visual-page.js && node --check public/app.js && node --check public/workspace-ui.js && node --check public/social-callback.js",
     "test": "node --test *.test.mjs"
   }
 }

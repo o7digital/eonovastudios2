@@ -142,3 +142,11 @@ Les descriptions de médias restent facultatives : sans texte espagnol, les desc
 Pour déployer la passerelle EON avec son Compose, copier aussi `cms/studio/translation.mjs` dans `/opt/o7/apps/eon2-olivia/translation.mjs`, monté en lecture seule avec `gateway.mjs`. Installer la route exacte de `infrastructure/olivia/nginx-location.conf`, vérifier `nginx -t`, puis recharger le proxy. Déployer uniquement le service `gateway` du projet `eon2-olivia`.
 
 Vérifications : `npm test` et `node --test tests/translation.browser.mjs` (Firefox), puis sauvegarde réelle d’un brouillon privé dans le Studio.
+
+## Mover secciones y ajustar espacios
+
+Dans **Editar mi página**, ouvrir **Mover secciones y ajustar espacios**. Faire glisser les lignes pour réordonner les sections ou les quatre blocs de l’accueil ; les flèches offrent la même action au clavier. Le curseur **Espacio anterior** ajoute de 0 à 240 px avant un bloc, sans position absolue ni marge négative. Les sections éditoriales désactivées restent disponibles dans la liste et reprendront cet ordre une fois activées. Le pied de page reste à la fin.
+
+Le résultat apparaît dans le vrai aperçu. **Guardar cambios** enregistre l’ordre et les espaces ; **Publicar mi sitio** les applique aux trois langues. Les changements non enregistrés sont conservés pendant la navigation et empêchent une publication prématurée. **Restaurar distribución original** prépare une remise à zéro qui reste à enregistrer.
+
+La migration additive `cms/upgrade-layout.mjs` crée `page_layout/home` et accorde la lecture à Website build, la lecture/modification à EON Studio editor. La configuration est validée côté serveur (permutations complètes, identifiants fixes, espaces bornés). Le build charge un instantané `.cms/layout.json`, réordonne le HTML avant publication et ne dépend pas de JavaScript pour sa mise en page.

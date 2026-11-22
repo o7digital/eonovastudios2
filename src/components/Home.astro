@@ -1,4 +1,5 @@
 ---
+import PageArrangement from './PageArrangement.astro';
 import Layout from '../layouts/Layout.astro';
 import Localized from './Localized.astro';
 import Header from './Header.astro';
@@ -13,4 +14,4 @@ const {lang = 'es'} = Astro.props;
 const cms = await getCms();
 const studyCopy = Object.fromEntries(cms.rows.map(row => [row.source, cleanCopy(row[lang])]));
 ---
-<Layout lang={lang}><Localized lang={lang}><Header lang={lang}/></Localized><main><Localized lang={lang}><HeroMotion media={cms.media.hero} lang={lang}/><MotionLab/><Studio media={cms.media.studio} lang={lang}/><Services media={cms.media} lang={lang}/></Localized><JournalSections lang={lang}/><Localized lang={lang}><Footer lang={lang}/></Localized></main><script id="cms-study-copy" type="application/json" set:html={JSON.stringify(studyCopy).replace(/</g, '\\u003c')} /></Layout>
+<Layout lang={lang} home={true}><Localized lang={lang}><Header lang={lang}/></Localized><main><PageArrangement><Localized lang={lang}><HeroMotion media={cms.media.hero} lang={lang}/><MotionLab/><Studio media={cms.media.studio} lang={lang}/><Services media={cms.media} lang={lang}/></Localized><JournalSections lang={lang}/><Localized lang={lang}><Footer lang={lang}/></Localized></PageArrangement></main><script id="cms-study-copy" type="application/json" set:html={JSON.stringify(studyCopy).replace(/</g, '\\u003c')} /></Layout>

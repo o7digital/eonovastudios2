@@ -9,6 +9,7 @@ import {mediaAlt} from './public/media-copy.js';
 import {publishedLogoUrl} from './public/logo.js';
 import {createJournal,JournalError} from './journal.mjs';
 import {createSocialLinks,SocialLinksError} from './social-links.mjs';
+import {validateLayout} from './public/layout-data.js';
 import {createAutoTranslator,TranslationError,translationHash} from './translation.mjs';
 
 const uuid = /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i;
@@ -195,6 +196,15 @@ export function createStudioServer(options = {}) {
         setSession(res,{access:fresh.access_token,refresh:fresh.refresh_token,accessUntil:Date.now()+fresh.expires,until:Date.now()+8*3600000,id:s.id,passwordTemporary:false});
         return send(res,{ok:true,message:'Tu contraseña se actualizó. Ya puedes usar tu Studio.'});
       }
+      if(path==='/api/layout'){
+        if(req.method==='GET')return send(res,await cms('/items/page_layout/home?fields=config',s.access));
+        if(req.method==='PATCH'){
+          const input=await jsonBody(req);let layout;try{layout=validateLayout(input);}catch(error){throw new ApiError(400,error.message);}
+          const rights=await cms('/permissions/me',s.access);if(!['full','partial',true].includes(rights?.page_layout?.update?.access))throw new ApiError(403,'Tu cuenta no tiene permiso para organizar la página.');
+          return send(res,await write(()=>cms('/items/page_layout/home?fields=config',s.access,'PATCH',{config:layout})));
+        }
+        throw new ApiError(405,'Esta acción no está disponible.');
+      }
       if(await socialLinks.handle({path,req,res,s,jsonBody,send}))return;
       if(await workspace.handle({path,url,req,res,s,jsonBody,send,body}))return;
       if(await journal.handle({path,req,res,s,jsonBody,send}))return;
@@ -310,7 +320,7 @@ export function createStudioServer(options = {}) {
       throw new ApiError(404, 'Esta acción no existe.');
     }
     if (req.method !== 'GET' && req.method !== 'HEAD') throw new ApiError(405, 'Método no permitido.');
-    const files = { '/social-links-ui.js':['social-links-ui.js','text/javascript; charset=utf-8'], '/social-links-data.js':['social-links-data.js','text/javascript; charset=utf-8'], '/journal-ui.js':['journal-ui.js','text/javascript; charset=utf-8'], '/journal-data.js':['journal-data.js','text/javascript; charset=utf-8'], '/text-color.js': ['text-color.js', 'text/javascript; charset=utf-8'], '/': ['index.html', 'text/html; charset=utf-8'], '/visual-page.js': ['visual-page.js', 'text/javascript; charset=utf-8'], '/editor.js': ['editor.js', 'text/javascript; charset=utf-8'], '/logo.js': ['logo.js', 'text/javascript; charset=utf-8'], '/media-copy.js': ['media-copy.js', 'text/javascript; charset=utf-8'], '/app.js': ['app.js', 'text/javascript; charset=utf-8'], '/workspace-ui.js':['workspace-ui.js','text/javascript; charset=utf-8'], '/social-callback.html':['social-callback.html','text/html; charset=utf-8'], '/social-callback.js':['social-callback.js','text/javascript; charset=utf-8'], '/style.css': ['style.css', 'text/css; charset=utf-8'], '/favicon.svg': ['favicon.svg', 'image/svg+xml'], '/dm-sans.woff2': ['dm-sans.woff2', 'font/woff2'], '/space-grotesk.woff2': ['space-grotesk.woff2', 'font/woff2'] };
+    const files = { '/layout-data.js':['layout-data.js','text/javascript; charset=utf-8'], '/layout-ui.js':['layout-ui.js','text/javascript; charset=utf-8'], '/social-links-ui.js':['social-links-ui.js','text/javascript; charset=utf-8'], '/social-links-data.js':['social-links-data.js','text/javascript; charset=utf-8'], '/journal-ui.js':['journal-ui.js','text/javascript; charset=utf-8'], '/journal-data.js':['journal-data.js','text/javascript; charset=utf-8'], '/text-color.js': ['text-color.js', 'text/javascript; charset=utf-8'], '/': ['index.html', 'text/html; charset=utf-8'], '/visual-page.js': ['visual-page.js', 'text/javascript; charset=utf-8'], '/editor.js': ['editor.js', 'text/javascript; charset=utf-8'], '/logo.js': ['logo.js', 'text/javascript; charset=utf-8'], '/media-copy.js': ['media-copy.js', 'text/javascript; charset=utf-8'], '/app.js': ['app.js', 'text/javascript; charset=utf-8'], '/workspace-ui.js':['workspace-ui.js','text/javascript; charset=utf-8'], '/social-callback.html':['social-callback.html','text/html; charset=utf-8'], '/social-callback.js':['social-callback.js','text/javascript; charset=utf-8'], '/style.css': ['style.css', 'text/css; charset=utf-8'], '/favicon.svg': ['favicon.svg', 'image/svg+xml'], '/dm-sans.woff2': ['dm-sans.woff2', 'font/woff2'], '/space-grotesk.woff2': ['space-grotesk.woff2', 'font/woff2'] };
     if(path==='/social-callback.html')res.setHeader('Referrer-Policy','no-referrer');
     if (!files[path]) throw new ApiError(404, 'Página no encontrada.');
     const [file, mime] = files[path];

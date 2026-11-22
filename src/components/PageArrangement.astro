@@ -1,0 +1,5 @@
+---
+import {getPageLayout,arrangePage} from '../lib/page-layout.mjs';
+const html=arrangePage(await Astro.slots.render('default'),await getPageLayout());
+---
+<Fragment set:html={html}/>
