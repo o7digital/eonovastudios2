@@ -1,10 +1,12 @@
 import http from 'node:http';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import {createTranslationProvider,TranslationError} from './translation.mjs';
 const tenant = 'eon-nova-studios';
 const key = process.env.GATEWAY_KEY;
 if (!key || !process.env.OLIVIA_PASSWORD) throw new Error('Gateway credentials required');
 const context = readFileSync(new URL('./knowledge.txt', import.meta.url), 'utf8');
+const translate=createTranslationProvider({apiKey:process.env.EON_TRANSLATION_OPENAI_KEY,model:process.env.EON_TRANSLATION_MODEL});
 const sign = value => createHmac('sha256', key).update(value).digest('base64url');
 const equal = (a, b) => typeof a === 'string' && Buffer.byteLength(a) === Buffer.byteLength(b) && timingSafeEqual(Buffer.from(a), Buffer.from(b));
 let token, expires = 0;
@@ -22,17 +24,21 @@ async function upstream(path, body, auth = true) {
 http.createServer(async (req, res) => {
   const json = (status, data) => { res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(data)); };
   if (req.url === '/health' && req.method === 'GET') return json(200, { status: 'ok', version: '3.5', tenant });
-  if (req.url !== '/chat' || req.method !== 'POST') return json(404, { error: 'Not found' });
+  if (!['/chat','/translate'].includes(req.url) || req.method !== 'POST') return json(404, { error: 'Not found' });
   if (!equal(req.headers.authorization, `Bearer ${key}`)) return json(401, { error: 'Unauthorized' });
-  const ip = req.headers['x-visitor-ip'] || 'unknown';
+  const translating=req.url==='/translate';
+  const ip = translating?'studio-translations':req.headers['x-visitor-ip'] || 'unknown';
   const rate = limits.get(ip) || { count: 0, until: Date.now() + 60000 };
   if (rate.until < Date.now()) { rate.count = 0; rate.until = Date.now() + 60000; }
   rate.count++; limits.set(ip, rate);
-  if (rate.count > 12) return json(429, { error: 'Too many messages' });
+  if (rate.count > (translating?120:12)) return json(429, { error: 'Too many messages' });
   try {
     let raw = '';
-    for await (const chunk of req) { raw += chunk; if (Buffer.byteLength(raw) > 16000) return json(413, { error: 'Too large' }); }
+    for await (const chunk of req) { raw += chunk; if (Buffer.byteLength(raw) > (translating?65536:16000)) return json(413, { error: 'Too large' }); }
     const body = JSON.parse(raw);
+    if(translating){
+      return json(200,{translations:await translate(body.items)});
+    }
     if (typeof body.message !== 'string' || !body.message.trim() || body.message.length > 2000 || !['es','en','fr'].includes(body.language)) return json(400, { error: 'Invalid message' });
     let cid;
     if (body.conversation) {
@@ -47,5 +53,5 @@ http.createServer(async (req, res) => {
     });
     if (result.engine !== 'openai' || typeof result.answer !== 'string' || !/^[a-f0-9]{24}$/.test(result.conversation_id)) throw new Error('Invalid response');
     return json(200, { answer: result.answer, conversation: `${result.conversation_id}.${sign(result.conversation_id)}`, version: '3.5' });
-  } catch (err) { console.error('Olivia gateway:', err.message); return json(503, { error: 'Olivia unavailable' }); }
+  } catch (err) { console.error('Olivia gateway:', err instanceof TranslationError?'Translation validation failed':err.message); return json(err instanceof TranslationError?err.status:503, { error: translating?'Translation unavailable':'Olivia unavailable' }); }
 }).listen(3099, '0.0.0.0');

@@ -1,10 +1,10 @@
-import {visualPageMarkup,mountVisualPage} from './visual-page.js?v=journal-1';
+import {visualPageMarkup,mountVisualPage} from './visual-page.js?v=translate-1';
 import {logoSize,logoImageUrl,prepareLogoPreview} from './logo.js?v=brand-4';
 import {mediaAlt,mediaLabels} from './media-copy.js?v=studio-2';
 import {mountEditors} from './editor.js?v=color-1';
 import {colorToolsMarkup} from './text-color.js?v=color-1';
 import {createSocialLinksUI} from './social-links-ui.js?v=social-links-1';
-import {createJournalUI} from './journal-ui.js?v=journal-1';
+import {createJournalUI} from './journal-ui.js?v=translate-1';
 import {journalDefinitions} from './journal-data.js?v=journal-1';
 import {createWorkspaceUI,workspaceSections} from './workspace-ui.js?v=es-mx-1';
 const $ = selector => document.querySelector(selector);
@@ -33,9 +33,9 @@ const sections = [
 const languages = {es:{name:'Español',label:'ES'},en:{name:'Inglés',label:'EN'},fr:{name:'Francés',label:'FR'}};
 const placementLabels = {logo:'Mi logo · encabezado y pie',hero:'Inicio · imagen o video principal',studio:'El estudio',graphic:'Diseño gráfico',digital:'Diseño digital'};
 const statusLabel = {published:'Incluir en el sitio',draft:'Borrador',archived:'Archivado'};
-const state = {texts:[],media:[],drafts:new Map(),route:'overview',lang:'es',filter:'',busy:false,profile:{},publishReady:false,canEdit:false,mediaEdit:null,mediaDrafts:new Map(),mediaUploading:false,visualPrefs:{width:1440,mode:'edit'}};
+const state = {texts:[],media:[],drafts:new Map(),route:'overview',lang:'es',filter:'',busy:false,profile:{},publishReady:false,canEdit:false,autoTranslate:false,mediaEdit:null,mediaDrafts:new Map(),mediaUploading:false,visualPrefs:{width:1440,mode:'edit'}};
 const workspace=createWorkspaceUI({api,toast,confirmDialog,isCurrent:route=>state.route===route});
-const journalUI=createJournalUI({api,upload:uploadMedia,canEdit:()=>state.canEdit,canPublish:()=>state.publishReady&&!allDirty(),onPublish:publish,isCurrent:route=>state.route===route&&!$('#studio-view').hidden,toast,confirmDialog});
+const journalUI=createJournalUI({api,upload:uploadMedia,canEdit:()=>state.canEdit,autoTranslate:()=>state.autoTranslate,canPublish:()=>state.publishReady&&!allDirty(),onPublish:publish,isCurrent:route=>state.route===route&&!$('#studio-view').hidden,toast,confirmDialog});
 const socialLinksUI=createSocialLinksUI({api,canEdit:()=>state.canEdit,canPublish:()=>state.publishReady&&!allDirty(),onPublish:publish,isCurrent:()=>state.route==='social-links'&&!$('#studio-view').hidden,toast});
 let toastTimer, previewBlob,visualUI,disposeFieldEditors;
 let studioLogoKey='',studioLogoVersion=0;
@@ -101,9 +101,11 @@ async function stageVisualPhoto(placement,file,onProgress){
  try{const uploaded=await uploadMedia(file,onProgress);recordMediaDraft(placement,{image:{id:uploaded.id,type:uploaded.type,filename_download:uploaded.name},status:'published'});}
  finally{state.mediaUploading=false;updatePending();}
 }
+const textEditable=()=>state.canEdit&&(!state.autoTranslate||state.lang==='es');
+const translationNotice=()=>state.autoTranslate?'<p class="source-hint">Escribe en español. Al guardar, el sistema genera inglés y francés automáticamente. Las otras pestañas muestran las traducciones guardadas.</p>':'';
 function editableCard(row){
   const data=values(row),title=plain(row.label || row.source),long=row.source.length>160;
-  return `<article class="text-card ${long?'long':''} ${state.drafts.has(row.id)?'changed':''}" data-card="${row.id}"><div class="field-head"><label id="label-${row.id}" class="field-label" for="text-${row.id}">${esc(title)}</label><span class="field-status ${esc(data.status)}" data-badge="${row.id}">${data.status==='published'?'Listo para el sitio':data.status==='draft'?'Borrador':'Archivado'}</span></div>${state.lang!=='es'?`<p class="source-hint">Español · ${esc(plain(data.es))}</p>`:''}<div class="visual-editor"><div class="rich-toolbar" role="toolbar" aria-label="Formato del texto"><button type="button" data-format="bold" title="Negrita (Ctrl/Cmd+B)" aria-label="Negrita"><strong>B</strong></button><button type="button" data-format="italic" title="Énfasis (Ctrl/Cmd+I)" aria-label="Énfasis"><em>Énfasis</em></button><span class="toolbar-divider"></span><button type="button" data-format="undo" aria-label="Deshacer" title="Deshacer">↶</button><button type="button" data-format="redo" aria-label="Rehacer" title="Rehacer">↷</button><span class="editor-mode">VISTA VISUAL</span></div>${colorToolsMarkup()}<div id="text-${row.id}" class="rich-field ${long?'rich-long':''}" data-rich-text="${row.id}" role="textbox" aria-multiline="true" aria-labelledby="label-${row.id}" lang="${state.lang}" spellcheck="true">${esc(data[state.lang])}</div><div class="rich-bottom"><span>Formato listo para el sitio</span><span class="editor-length"></span></div></div><div class="field-foot"><span><i class="editable-dot"></i>${state.canEdit?'Editable':'Solo lectura'} · ${languages[state.lang].name}</span><select aria-label="Visibilidad: ${esc(title.slice(0,90))}" data-status="${row.id}" ${!state.canEdit?'disabled':''}>${Object.entries(statusLabel).map(([value,label])=>`<option value="${value}" ${value===data.status?'selected':''}>${label}</option>`).join('')}</select></div></article>`;
+  return `<article class="text-card ${long?'long':''} ${state.drafts.has(row.id)?'changed':''}" data-card="${row.id}"><div class="field-head"><label id="label-${row.id}" class="field-label" for="text-${row.id}">${esc(title)}</label><span class="field-status ${esc(data.status)}" data-badge="${row.id}">${data.status==='published'?'Listo para el sitio':data.status==='draft'?'Borrador':'Archivado'}</span></div>${state.lang!=='es'?`<p class="source-hint">Español · ${esc(plain(data.es))}</p>`:''}<div class="visual-editor"><div class="rich-toolbar" role="toolbar" aria-label="Formato del texto"><button type="button" data-format="bold" title="Negrita (Ctrl/Cmd+B)" aria-label="Negrita"><strong>B</strong></button><button type="button" data-format="italic" title="Énfasis (Ctrl/Cmd+I)" aria-label="Énfasis"><em>Énfasis</em></button><span class="toolbar-divider"></span><button type="button" data-format="undo" aria-label="Deshacer" title="Deshacer">↶</button><button type="button" data-format="redo" aria-label="Rehacer" title="Rehacer">↷</button><span class="editor-mode">VISTA VISUAL</span></div>${colorToolsMarkup()}<div id="text-${row.id}" class="rich-field ${long?'rich-long':''}" data-rich-text="${row.id}" role="textbox" aria-multiline="true" aria-labelledby="label-${row.id}" lang="${state.lang}" spellcheck="true">${esc(data[state.lang])}</div><div class="rich-bottom"><span>Formato listo para el sitio</span><span class="editor-length"></span></div></div><div class="field-foot"><span><i class="editable-dot"></i>${textEditable()?'Editable':state.autoTranslate?'Traducción automática · solo lectura':'Solo lectura'} · ${languages[state.lang].name}</span><select aria-label="Visibilidad: ${esc(title.slice(0,90))}" data-status="${row.id}" ${!state.canEdit?'disabled':''}>${Object.entries(statusLabel).map(([value,label])=>`<option value="${value}" ${value===data.status?'selected':''}>${label}</option>`).join('')}</select></div></article>`;
 }
 function saveBar(){return `<div class="editor-savebar"><div><strong id="save-summary">${pendingSummary()}</strong><small>Guarda tus cambios y pulsa Publicar mi sitio para actualizar la página pública.</small></div><div class="savebar-actions"><button class="button secondary" data-revert ${!sectionDirty()?'disabled':''}>Descartar cambios</button><button class="button primary" data-save ${!sectionDirty()||!state.canEdit?'disabled':''}>Guardar cambios <span>↗</span></button><button class="button secondary" data-publish ${!state.publishReady||allDirty()||!state.canEdit?'disabled':''}>Publicar mi sitio <span>↗</span></button></div></div>`;}
 function sectionDirty(){return currentRows().filter(row=>state.drafts.has(row.id)).length+currentPlacements().filter(placement=>state.mediaDrafts.has(placement)).length;}
@@ -111,7 +113,7 @@ function pendingSummary(){const n=sectionDirty();return n?`${n} cambio${n!==1?'s
 function editor(){
   const section=sections.find(s=>s.id===state.route);
   return pageHeading(`${section.number} / MI SITIO`,section.name,'Haz clic en los textos y las imágenes para editarlos sobre el diseño real.',viewLinks(section.anchor))+
-    visualPageMarkup(state.lang)+`<details class="studio-text-fields"><summary>Campos de texto y opciones de idioma</summary><div class="editor-toolbar"><label class="sr-only" for="text-search">Buscar texto</label><input id="text-search" class="search-box" type="search" placeholder="Buscar en esta sección…" value="${esc(state.filter)}"></div><div class="field-list">${currentRows().map(editableCard).join('')}</div><p id="search-empty" class="muted" hidden>No hay textos que coincidan con tu búsqueda.</p></details>`;
+    translationNotice()+visualPageMarkup(state.lang)+`<details class="studio-text-fields"><summary>Campos de texto y opciones de idioma</summary><div class="editor-toolbar"><label class="sr-only" for="text-search">Buscar texto</label><input id="text-search" class="search-box" type="search" placeholder="Buscar en esta sección…" value="${esc(state.filter)}"></div><div class="field-list">${currentRows().map(editableCard).join('')}</div><p id="search-empty" class="muted" hidden>No hay textos que coincidan con tu búsqueda.</p></details>`;
 }
 function mediaPage(){return pageHeading('TU UNIVERSO VISUAL','Tu identidad. En cada frame.','Selecciona el archivo y revisa el resultado antes de guardar.')+
   `<div class="editor-intro">${icon('info')}<span>Sube archivos o reutiliza los de tu biblioteca. Ajusta el encuadre sin modificar el original. Imágenes: 25 MB. Videos MP4 y WebM: 100 MB.</span></div>`+
@@ -120,7 +122,7 @@ function mediaPage(){return pageHeading('TU UNIVERSO VISUAL','Tu identidad. En c
     return `<article class="media-card"><div class="media-visual">${row?.image?.id?`<${row.image.type?.startsWith("video/")?'video controls preload="metadata"':'img loading="lazy"'} src="${esc(logoImageUrl(row.image))}" alt="${esc(row.alt_es)}">${row.image.type?.startsWith("video/")?'</video>':''}`:'<span class="media-default">✳</span>'}${!shown?'<span class="original-label">DISEÑO ORIGINAL ACTIVO</span>':''}</div><div class="media-card-body"><div class="media-card-heading"><h3>${label}</h3><span class="eyebrow">0${index+1}</span></div><p>${row?`${esc(row.image?.filename_download || 'Image')} · ${esc(statusLabel[row.status] || row.status)}`:'Agrega tu imagen o conserva la creación original.'}</p><div class="media-card-actions"><button class="button ${row?'secondary':'primary'}" data-edit-media="${placement}" ${!state.canEdit?'disabled':''}>${row?'Editar medio':placement==='logo'?'Agregar mi logo':'Agregar foto o video'} <span>↗</span></button>${row && row.status!=='archived'?`<button class="button secondary" data-archive-media="${row.id}" ${!state.canEdit?'disabled':''}>Restaurar original</button>`:''}</div></div></article>`;
   }).join('')}</div>`+saveBar();
 }
-function visualPage(){return pageHeading('MI SITIO','Editar mi página','Haz clic en un texto, una foto o el logo. Cambia el contenido sobre el diseño real.')+visualPageMarkup(state.lang);}
+function visualPage(){return pageHeading('MI SITIO','Editar mi página','Haz clic en un texto, una foto o el logo. Cambia el contenido sobre el diseño real.')+translationNotice()+visualPageMarkup(state.lang);}
 function accountPage(){
   return pageHeading('MI CUENTA','Tu espacio. Tu acceso.','Administra tu contraseña personal de EON Studio.')+
     `<div class="account-grid"><article class="account-card"><span class="eyebrow">TU PERFIL</span><h2>${esc(state.profile.name)}</h2><p>${esc(state.profile.email)}</p><p class="muted">Esta es tu cuenta personal para administrar EON NOVA.</p></article><section class="account-card"><h2>Cambiar mi contraseña</h2><p>${state.profile.passwordTemporary?'Tu contraseña temporal permite usar todo el Studio. Puedes elegir una contraseña personal cuando lo desees.':'Introduce tu contraseña actual y elige una nueva.'}</p><form id="account-password-form"><label for="account-current-password">Contraseña actual${state.profile.passwordTemporary?' (temporal)':''}</label><input id="account-current-password" type="password" autocomplete="current-password" required maxlength="250"><label for="account-new-password">Nueva contraseña</label><input id="account-new-password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required aria-describedby="account-password-hint"><small id="account-password-hint">Mínimo 12 caracteres. Puedes usar una frase larga.</small><label for="account-confirm-password">Confirmar nueva contraseña</label><input id="account-confirm-password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required><p id="account-password-error" class="form-error" role="alert" hidden></p><button type="submit" class="button primary">Guardar nueva contraseña</button></form></section></div>`;
@@ -144,14 +146,14 @@ function render(){
   $('#account-password-form')?.addEventListener('submit',changePassword);
   $('#content').querySelectorAll('[data-publish]').forEach(button=>button.addEventListener('click',publish));
   $('#content').querySelectorAll('[data-language]').forEach(button=>button.addEventListener('click',()=>{state.lang=button.dataset.language;render();}));
-  disposeFieldEditors=mountEditors($('#content'),{editable:state.canEdit,onChange:(id,value)=>{recordDraft(id,state.lang,value);updatePending();}});
+  disposeFieldEditors=mountEditors($('#content'),{editable:textEditable(),onChange:(id,value)=>{recordDraft(id,state.lang,value);updatePending();}});
   $('#content').querySelectorAll('[data-status]').forEach(input=>input.addEventListener('change',()=>{recordDraft(input.dataset.status,'status',input.value);updatePending();}));
   if(!$('#content .visual-page'))$('#content').querySelector('[data-save]')?.addEventListener('click',saveTexts);
   $('#content').querySelector('[data-revert]')?.addEventListener('click',async()=>{if(await confirmDialog('¿Descartar los cambios?','Los textos guardados se conservan. Solo se descartan los cambios sin guardar de esta sección.')){for(const row of currentRows())state.drafts.delete(row.id);for(const placement of currentPlacements())state.mediaDrafts.delete(placement);render();}});
   $('#text-search')?.addEventListener('input',event=>{state.filter=event.target.value;filterCards();});
   $('#content').querySelectorAll('[data-edit-media]').forEach(button=>button.addEventListener('click',()=>openMedia(button.dataset.editMedia)));
   $('#content').querySelectorAll('[data-archive-media]').forEach(button=>button.addEventListener('click',()=>archiveMedia(button.dataset.archiveMedia)));
-  if($('#content .visual-page'))visualUI=mountVisualPage($('#content .visual-page'),{lang:state.lang,rows:currentRows(),valueOf:values,onText:(id,lang,value)=>{recordDraft(id,lang,value);updatePending();},onMediaOptions:openMedia,onPhoto:stageVisualPhoto,onMediaChange:recordMediaDraft,onSave:saveTexts,canEdit:state.canEdit,mediaOf,placements:currentPlacements(),anchor:sections.find(section=>section.id===state.route)?.anchor,prefs:state.visualPrefs,dirtyCount:sectionDirty,busy:()=>state.busy||state.mediaUploading});
+  if($('#content .visual-page'))visualUI=mountVisualPage($('#content .visual-page'),{lang:state.lang,rows:currentRows(),valueOf:values,onText:(id,lang,value)=>{recordDraft(id,lang,value);updatePending();},onMediaOptions:openMedia,onPhoto:stageVisualPhoto,onMediaChange:recordMediaDraft,onSave:saveTexts,canEdit:state.canEdit,canEditText:textEditable(),mediaOf,placements:currentPlacements(),anchor:sections.find(section=>section.id===state.route)?.anchor,prefs:state.visualPrefs,dirtyCount:sectionDirty,busy:()=>state.busy||state.mediaUploading});
   filterCards();if($('#save-summary'))updatePending();
 }
 function recordDraft(id,field,value){
@@ -162,9 +164,10 @@ function recordDraft(id,field,value){
 function updatePending(){
   syncStudioLogo();
   const editable=state.canEdit&&!state.busy&&!state.mediaUploading;
-  $('#content').querySelectorAll('[data-rich-text]').forEach(field=>field.contentEditable=String(editable));
-  const doc=$('#content iframe')?.contentDocument;doc?.querySelectorAll('[data-eon-text]').forEach(field=>field.contentEditable=String(editable));
-  $('#content').querySelectorAll('[data-format],[data-status],.text-color-tools input,.text-color-tools button').forEach(field=>field.disabled=!editable);
+  $('#content').querySelectorAll('[data-rich-text]').forEach(field=>field.contentEditable=String(editable&&textEditable()));
+  const doc=$('#content iframe')?.contentDocument;doc?.querySelectorAll('[data-eon-text]').forEach(field=>field.contentEditable=String(editable&&textEditable()));
+  $('#content').querySelectorAll('[data-format],.text-color-tools input,.text-color-tools button').forEach(field=>field.disabled=!editable||!textEditable());
+  $('#content').querySelectorAll('[data-status]').forEach(field=>field.disabled=!editable);
   if($('#save-summary'))$('#save-summary').textContent=pendingSummary();
   if($('[data-save]'))$('[data-save]').disabled=!sectionDirty()||!editable;if($('[data-revert]'))$('[data-revert]').disabled=!sectionDirty()||state.busy||state.mediaUploading;
   $('#content').querySelectorAll('[data-publish]').forEach(button=>button.disabled=!state.publishReady||allDirty()>0||state.busy||state.mediaUploading||!state.canEdit);
@@ -181,7 +184,7 @@ async function saveTexts(){
   const changedMedia=currentPlacements().filter(placement=>state.mediaDrafts.has(placement)).map(placement=>state.mediaDrafts.get(placement));
   if(!items.length&&!changedMedia.length)return;
   if(items.some(row=>Object.keys(languages).some(lang=>row[lang]!==undefined&&!row[lang].trim())))return toast('Conserva un texto en cada idioma.',true);
-  state.busy=true;updatePending();const button=$('[data-save]');button.textContent='Guardando…';
+  state.busy=true;updatePending();const button=$('[data-save]');button.textContent=state.autoTranslate?'Traduciendo y guardando…':'Guardando…';
   try{
     const rows=items.length?await api('/api/texts',{method:'PATCH',body:JSON.stringify({items})}):[];
     for(const row of rows){const index=state.texts.findIndex(item=>item.id===row.id);state.texts[index]=row;state.drafts.delete(row.id);}
@@ -218,7 +221,8 @@ function openMedia(placement){
   const row=mediaOf(placement);
   state.mediaEdit={id:row?.id,fileId:row?.image?.id,placement,dirty:false};
   $('#media-dialog-title').textContent=placement==='logo'?'Cambiar mi logo':'Cambiar foto o video';$('#media-dialog-context').textContent=mediaLabels[placement]+' · Elige un archivo, revisa el resultado y guarda.';$('#media-options').open=false;$('#media-form').reset();$('#library-grid').hidden=true;$('#media-placement').value=placement;$('#media-placement').disabled=Boolean(row);
-  for(const lang of Object.keys(languages))$(`#alt-${lang}`).value=row?.[`alt_${lang}`] || '';
+  for(const lang of Object.keys(languages)){const field=$(`#alt-${lang}`);field.value=row?.[`alt_${lang}`]||'';field.readOnly=state.autoTranslate&&lang!=='es';}
+  $('.media-description-help').textContent=state.autoTranslate?'Descripción opcional: escribe en español y se traducirá al inglés y francés al guardar. Si la dejas vacía, se usa una descripción de la sección.':'Puedes añadir una descripción más precisa. Si la dejas vacía, el sitio usa la sección de la imagen.';
   $('#media-status').value=row?.status==='archived'?'published':row?.status || 'published';
   $('#upload-label').textContent=row?.image?.filename_download || 'Elegir foto o video';$('#media-error').hidden=true;$('#media-preview').hidden=true;$('#media-image-shell').hidden=true;$('#video-preview').hidden=true;
   $('#logo-size').value=logoSize(row?.logo_size);configureMediaFields();
@@ -274,7 +278,7 @@ $('#media-form').addEventListener('submit',async event=>{
   event.preventDefault();const button=$('#save-media'),edit=state.mediaEdit,file=$('#media-file').files[0];if(!edit)return;
   if(!edit.fileId&&!file){$('#media-error').textContent='Elige una foto o un video.';$('#media-error').hidden=false;return;}
   if(file&&(!['image/jpeg','image/png','image/webp','image/avif','image/gif','video/mp4','video/webm'].includes(file.type)||file.size>(file.type.startsWith('video/')?100:25)*1024*1024||($('#media-placement').value==='logo'&&file.type.startsWith('video/')))){ $('#media-error').textContent='Usa una imagen (25 MB máx.) o un video MP4/WebM (100 MB máx.). El logo requiere una imagen.';$('#media-error').hidden=false;return; }
-  button.disabled=true;button.textContent='Guardando…';$('#media-error').hidden=true;
+  button.disabled=true;button.textContent=state.autoTranslate?'Traduciendo y guardando…':'Guardando…';$('#media-error').hidden=true;
   try{
     if(file&&!edit.fileId){const uploaded=await uploadMedia(file,button);edit.fileId=uploaded.id;}
     const input={...($('#media-placement').value==='logo'?{logo_size:Number($('#logo-size').value)}:{}),placement:$('#media-placement').value,image:edit.fileId,status:$('#media-status').value,position:`${$('#focal-x').value}% ${$('#focal-y').value}%`,fit:$('#media-fit').value,...Object.fromEntries(Object.keys(languages).map(lang=>['alt_'+lang,$('#alt-'+lang).value.trim()]))};

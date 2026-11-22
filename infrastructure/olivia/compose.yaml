@@ -7,7 +7,7 @@ services:
     working_dir: /app
     command: [node, gateway.mjs]
     env_file: .env
-    volumes: [./gateway.mjs:/app/gateway.mjs:ro, ./knowledge.txt:/app/knowledge.txt:ro]
+    volumes: [./gateway.mjs:/app/gateway.mjs:ro, ./translation.mjs:/app/translation.mjs:ro, ./knowledge.txt:/app/knowledge.txt:ro]
     networks: [o7-apps, v3]
     read_only: true
     user: node

@@ -9,6 +9,7 @@ import {mediaAlt} from './public/media-copy.js';
 import {publishedLogoUrl} from './public/logo.js';
 import {createJournal,JournalError} from './journal.mjs';
 import {createSocialLinks,SocialLinksError} from './social-links.mjs';
+import {createAutoTranslator,TranslationError,translationHash} from './translation.mjs';
 
 const uuid = /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i;
 const locales = ['es', 'en', 'fr'];
@@ -37,6 +38,9 @@ export function createStudioServer(options = {}) {
     ownerEmail: process.env.STUDIO_OWNER_EMAIL,
     mediaReadToken: process.env.STUDIO_MEDIA_READ_TOKEN,
     accountToken: process.env.STUDIO_ACCOUNT_WRITE_TOKEN,
+    autoTranslate: process.env.STUDIO_AUTO_TRANSLATE === 'true',
+    translationUrl: process.env.STUDIO_TRANSLATION_URL,
+    translationKey: process.env.STUDIO_TRANSLATION_KEY,
     ...options,
   };
   if (!config.cms || !config.origin || !config.secret || config.secret.length < 32) throw new Error('Configure DIRECTUS_URL, STUDIO_ORIGIN and STUDIO_SESSION_SECRET (32+ characters).');
@@ -92,7 +96,23 @@ export function createStudioServer(options = {}) {
   }
   const socialMedia=createSocialMedia({cms:config.cms,editorToken:config.mediaReadToken,secret:config.secret,origin:config.origin,fetcher:config.fetcher});
   const workspace=createWorkspace({cms,crm:config.crm,tenant:config.tenant,serviceEmail:config.serviceEmail,servicePassword:config.servicePassword,ownerEmail:config.ownerEmail,origin:config.origin,fetcher:config.fetcher,socialMedia});
-  const journal=createJournal({cms,write});
+  const translator=createAutoTranslator({enabled:config.autoTranslate,url:config.translationUrl,key:config.translationKey,fetcher:config.fetcher});
+  async function authorizeWrite(s,collection,action='update'){
+    if(!config.autoTranslate)return;
+    const rights=await cms('/permissions/me',s.access);
+    if(!['full','partial',true].includes(rights?.[collection]?.[action]?.access))throw new ApiError(403,'Tu cuenta no tiene permiso para guardar este contenido.');
+  }
+  async function prepareTextEdits(items,s){
+    if(!config.autoTranslate)return items;
+    await authorizeWrite(s,'site_texts');
+    if(items.some(row=>row.es===undefined&&(row.en!==undefined||row.fr!==undefined)))throw new ApiError(400,'Edita el texto en español. Inglés y francés se generan automáticamente.');
+    const changed=items.filter(row=>row.es!==undefined);if(!changed.length)return items;
+    const originals=await cms('/items/site_texts?filter[id][_in]='+changed.map(r=>r.id).join(',')+'&fields=id,es,en,fr,translation_source&limit=-1',s.access);
+    const groups=changed.map(row=>{const previous=originals.find(r=>r.id===row.id);if(!previous)throw new ApiError(404,'Este texto no está disponible.');return {key:row.id,value:{es:row.es},previous,previousHash:previous.translation_source?.text,format:'html',max:12000};});
+    const hashes=await translator.apply(groups,s.id);
+    return items.map(row=>{const group=groups.find(g=>g.key===row.id);return group?{...row,en:group.value.en,fr:group.value.fr,translation_source:{text:hashes[row.id]}}:row;});
+  }
+  const journal=createJournal({cms,write,translator,authorizeWrite});
   const socialLinks=createSocialLinks({cms,write});
   async function body(req, limit = 262144) {
     if (Number(req.headers['content-length']) > limit) throw new ApiError(413, 'El archivo supera el tamaño permitido.');
@@ -197,7 +217,7 @@ export function createStudioServer(options = {}) {
         ]);
         const permission = rights?.site_texts?.update;
         return send(res, { profile: { email: profile.email, name: [profile.first_name, profile.last_name].filter(Boolean).join(' '), passwordTemporary: s.passwordTemporary === true || s.mustChangePassword === true }, texts, media,
-          website: config.website, workspaceReady:workspace.ready(), publishReady: config.publishEnabled && Boolean(config.publishSecret), canEdit: permission?.access === 'full' || permission?.access === 'partial' || permission?.access === true });
+          website: config.website, autoTranslate:config.autoTranslate, workspaceReady:workspace.ready(), publishReady: config.publishEnabled && Boolean(config.publishSecret), canEdit: permission?.access === 'full' || permission?.access === 'partial' || permission?.access === true });
       }
       const textId = path.match(/^\/api\/texts\/([a-f\d-]{36})$/i)?.[1];
       if (path === '/api/texts' && req.method === 'PATCH') {
@@ -209,12 +229,14 @@ export function createStudioServer(options = {}) {
           ids.add(row.id); const {id, ...fields} = row; validate(fields, [...locales, 'status']);
           if (locales.some(lang => fields[lang] !== undefined && !fields[lang].trim())) throw new ApiError(400, 'Conserva un texto en cada idioma.');
         }
-        return send(res, await write(() => cms(`/items/site_texts?fields=${textFields}`, s.access, 'PATCH', input.items)));
+        const items=await prepareTextEdits(input.items,s);
+        return send(res, await write(() => cms(`/items/site_texts?fields=${textFields}`, s.access, 'PATCH', items)));
       }
       if (textId && uuid.test(textId) && req.method === 'PATCH') {
         const input = await jsonBody(req); validate(input, [...locales, 'status']);
         if (locales.some(lang => input[lang] !== undefined && !input[lang].trim())) throw new ApiError(400, 'Conserva un texto en cada idioma.');
-        const updated = await write(() => cms(`/items/site_texts/${textId}?fields=${textFields}`, s.access, 'PATCH', input));
+        const [prepared]=await prepareTextEdits([{id:textId,...input}],s);const {id,...fields}=prepared;
+        const updated = await write(() => cms(`/items/site_texts/${textId}?fields=${textFields}`, s.access, 'PATCH', fields));
         return send(res, updated);
       }
       const mediaId = path.match(/^\/api\/media\/([a-f\d-]{36})$/i)?.[1];
@@ -226,7 +248,7 @@ export function createStudioServer(options = {}) {
         if ((input.placement !== undefined && !placements.includes(input.placement)) || (input.image !== undefined && !uuid.test(input.image))) throw new ApiError(400, 'Elige una ubicación y una imagen válidas.');
         if (input.position !== undefined && !/^(100|[0-9]{1,2})% (100|[0-9]{1,2})%$/.test(input.position)) throw new ApiError(400, 'Elige un encuadre válido.');
         if (input.fit !== undefined && !['cover', 'contain'].includes(input.fit)) throw new ApiError(400, 'Elige un ajuste válido.');
-        const previous = mediaId ? await cms(`/items/section_media/${mediaId}?fields=${mediaFields}`, s.access) : {};
+        const previous = mediaId ? await cms(`/items/section_media/${mediaId}?fields=${mediaFields}${config.autoTranslate?',translation_source':''}`, s.access) : {};
         const effective = { status: 'draft', ...previous, ...input };
         if (!effective.placement || !effective.image) throw new ApiError(400, 'Elige una foto o un video.');
         if (locales.some(lang => effective[`alt_${lang}`]?.length > 2000)) throw new ApiError(400, 'La descripción admite hasta 2 000 caracteres.');
@@ -234,6 +256,17 @@ export function createStudioServer(options = {}) {
         const fileId = typeof effective.image === 'string' ? effective.image : effective.image.id;
         const file = await cms(`/files/${fileId}?fields=id,type,filesize`, s.access);
         if (!mediaTypes.includes(file.type) || Number(file.filesize) > (file.type.startsWith('video/') ? 100 : 25) * 1024 * 1024 || (effective.placement === 'logo' && !imageTypes.includes(file.type))) throw new ApiError(400, 'El logo requiere una imagen. Máximo: imágenes 25 MB, videos MP4/WebM 100 MB.');
+        if(config.autoTranslate){
+          await authorizeWrite(s,'section_media',mediaId?'update':'create');
+          const es=typeof fields.alt_es==='string'?fields.alt_es.trim():previous.alt_es||'';
+          if(!es||es===mediaAlt(effective.placement,'es','')){
+            for(const lang of locales)input['alt_'+lang]=mediaAlt(effective.placement,lang,'');
+            input.translation_source={alt:translationHash(input.alt_es)};
+          }else{
+            const group={key:'alt',value:{es},previous:{es:previous.alt_es,en:previous.alt_en,fr:previous.alt_fr},previousHash:previous.translation_source?.alt,max:2000};
+            input.translation_source=await translator.apply([group],s.id);for(const lang of locales)input['alt_'+lang]=group.value[lang];
+          }
+        }
         return send(res, await write(() => cms(`/items/section_media${mediaId ? '/' + mediaId : ''}?fields=${mediaFields}`, s.access, mediaId ? 'PATCH' : 'POST', mediaId ? input : { id: randomUUID(), status: 'draft', ...input })), mediaId ? 200 : 201);
       }
       if (path === '/api/upload' && req.method === 'POST') {
@@ -286,7 +319,7 @@ export function createStudioServer(options = {}) {
   }
   return http.createServer((req, res) => serve(req, res).catch(error => {
     if (res.headersSent) { res.end(); return; }
-    const known=error instanceof ApiError||error instanceof WorkspaceError||error instanceof SocialMediaError||error instanceof JournalError||error instanceof SocialLinksError;
+    const known=error instanceof ApiError||error instanceof WorkspaceError||error instanceof SocialMediaError||error instanceof JournalError||error instanceof SocialLinksError||error instanceof TranslationError;
     const status = known ? error.status : 500;
     if (status === 401) setSession(res, null);
     send(res, { error: known ? error.message : 'El Studio no pudo completar esta acción. Intenta de nuevo.' }, status);

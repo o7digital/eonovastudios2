@@ -11,6 +11,7 @@
     "test:studio:browser": "node --test tests/studio-visual.browser.mjs",
     "test:contact:browser": "node --test tests/contact.browser.mjs",
     "test:journal:browser": "node --test tests/journal.browser.mjs",
+    "test:translation:browser": "node --test tests/translation.browser.mjs",
     "test:social-links:browser": "node --test tests/social-links.browser.mjs"
   },
   "dependencies": {

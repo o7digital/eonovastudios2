@@ -17,7 +17,7 @@ export function visualPageMarkup(lang){
  <p class="visual-error form-error" role="alert" hidden></p><input class="visual-upload" type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/gif,video/mp4,video/webm" hidden></section>`;
 }
 
-export function mountVisualPage(root,{lang,rows,valueOf,onText,onMediaOptions,onPhoto,onMediaChange,onSave,canEdit,mediaOf,placements=Object.keys(selectors),anchor,prefs={},dirtyCount=()=>0,busy=()=>false}){
+export function mountVisualPage(root,{lang,rows,valueOf,onText,onMediaOptions,onPhoto,onMediaChange,onSave,canEdit,canEditText=canEdit,mediaOf,placements=Object.keys(selectors),anchor,prefs={},dirtyCount=()=>0,busy=()=>false}){
  const frame=root.querySelector('iframe'),status=root.querySelector('.visual-page-status'),inspector=root.querySelector('.visual-inspector-content'),upload=root.querySelector('.visual-upload');
  const targets=new Map();
  const mediaTools=root.querySelector('.visual-media-tools'),uploadPlacement=mediaTools.querySelector('[data-upload-placement]');
@@ -29,20 +29,21 @@ export function mountVisualPage(root,{lang,rows,valueOf,onText,onMediaOptions,on
  const lookup=new Map();
  for(const row of rows)for(const value of [row[lang],row.source])if(value)lookup.set(normalize(value),row);
  const editable=()=>canEdit&&!busy()&&!uploading&&mode==='edit';
+ const textEditable=()=>canEditText&&editable();
  function message(error=''){const node=root.querySelector('.visual-error');node.textContent=error;node.hidden=!error;}
  function highlight(node){doc?.querySelectorAll('[data-eon-selected]').forEach(el=>el.removeAttribute('data-eon-selected'));node?.setAttribute('data-eon-selected','');}
  function refresh(){
   if(destroyed)return;
-  const dirty=dirtyCount();status.textContent=!status.dataset.visualReady&&!busy()&&!uploading?'Preparando tu página…':uploading?'Subiendo archivo…':busy()?'Guardando cambios…':!canEdit?'Vista previa · solo lectura':dirty?`${dirty} cambio${dirty===1?'':'s'} sin guardar`:`${count} textos editables · haz clic en un texto o una imagen.`;
+  const dirty=dirtyCount();status.textContent=!status.dataset.visualReady&&!busy()&&!uploading?'Preparando tu página…':uploading?'Subiendo archivo…':busy()?'Guardando y preparando los idiomas…':!canEdit?'Vista previa · solo lectura':!canEditText?'Traducción automática · solo lectura. Edita los textos en Español.':dirty?`${dirty} cambio${dirty===1?'':'s'} sin guardar`:`${count} textos editables · haz clic en un texto o una imagen.`;
   root.querySelector('[data-visual-save]').disabled=!canEdit||busy()||uploading||!dirty;
-  for(const nodes of targets.values())for(const node of nodes){node.contentEditable=String(editable());node.setAttribute('aria-readonly',String(!editable()));}
-  inspector.querySelectorAll('[data-rich-text]').forEach(node=>node.contentEditable=String(editable()));
-  inspector.querySelectorAll('button,input').forEach(node=>node.disabled=!editable());
+  for(const nodes of targets.values())for(const node of nodes){node.contentEditable=String(textEditable());node.setAttribute('aria-readonly',String(!textEditable()));}
+  inspector.querySelectorAll('[data-rich-text]').forEach(node=>node.contentEditable=String(textEditable()));
+  inspector.querySelectorAll('button,input').forEach(node=>node.disabled=!(selected?.kind==='text'?textEditable():editable()));
   mediaTools.querySelectorAll('button,select').forEach(node=>node.disabled=!editable());
   mediaTools.querySelector('[data-add-video]').disabled=!editable()||uploadPlacement.value==='logo';
  }
  function changeText(row,value,origin){
-  if(!editable())return;
+  if(!textEditable())return;
   onText(row.id,lang,value);
   for(const node of targets.get(row.id)||[])if(node!==origin)renderInline(node,value);
   const input=inspector.querySelector('[data-rich-text]');if(selected?.kind==='text'&&selected.row.id===row.id&&input!==origin&&input)renderInline(input,value);
@@ -53,7 +54,7 @@ export function mountVisualPage(root,{lang,rows,valueOf,onText,onMediaOptions,on
   inspector.innerHTML=`<span class="visual-kind">TEXTO · ${lang.toUpperCase()}</span><h2>${esc(row.label)}</h2><div class="visual-editor"><div class="rich-toolbar" role="toolbar" aria-label="Formato"><button type="button" data-format="bold" aria-label="Negrita"><strong>B</strong></button><button type="button" data-format="italic" aria-label="Énfasis">Énfasis</button><button type="button" data-format="undo" aria-label="Deshacer">↶</button></div><div data-rich-text="${row.id}" class="rich-field" role="textbox" aria-label="Texto seleccionado" aria-multiline="true">${esc(valueOf(row)[lang])}</div><div class="rich-bottom"><span class="editor-length"></span></div></div><p>La tipografía y el diseño se conservan.</p>`;
   inspector.querySelector('.rich-toolbar').insertAdjacentHTML('afterend',colorToolsMarkup());
   inspector.insertAdjacentHTML('beforeend','<p>Selecciona las letras que quieres colorear. Sin selección, el color se aplica a todo el texto.</p>');
-  disposeEditors=mountEditors(inspector,{editable:editable(),colorDocument:doc,colorTarget:()=>selected.editingNode||inspector.querySelector('[data-rich-text]'),onFocus:field=>{selected.editingNode=field;},onColorChange:(target,value)=>changeText(row,value,target),onChange:(_id,value)=>changeText(row,value,inspector.querySelector('[data-rich-text]'))});refresh();
+  disposeEditors=mountEditors(inspector,{editable:textEditable(),colorDocument:doc,colorTarget:()=>selected.editingNode||inspector.querySelector('[data-rich-text]'),onFocus:field=>{selected.editingNode=field;},onColorChange:(target,value)=>changeText(row,value,target),onChange:(_id,value)=>changeText(row,value,inspector.querySelector('[data-rich-text]'))});refresh();
  }
  async function applyMedia(placement){
   if(!doc||destroyed)return;
@@ -121,9 +122,9 @@ export function mountVisualPage(root,{lang,rows,valueOf,onText,onMediaOptions,on
      if(!targets.has(row.id))targets.set(row.id,[]);targets.get(row.id).push(node);
      node.addEventListener('focus',()=>{if(mode!=='edit')return;if(selected?.kind==='text'&&selected.row.id===row.id){selected.node=node;selected.editingNode=node;highlight(node);}else selectText(row,node);});
      node.addEventListener('input',()=>changeText(row,cleanInline(node.innerHTML),node));
-     node.addEventListener('paste',event=>{event.preventDefault();if(editable())doc.execCommand('insertText',false,event.clipboardData.getData('text/plain'));});
+     node.addEventListener('paste',event=>{event.preventDefault();if(textEditable())doc.execCommand('insertText',false,event.clipboardData.getData('text/plain'));});
      node.addEventListener('drop',event=>event.preventDefault());
-     node.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();if(editable())doc.execCommand('insertLineBreak');}});return;
+     node.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();if(textEditable())doc.execCommand('insertLineBreak');}});return;
     }
     for(const child of [...node.children])visit(child);
    }

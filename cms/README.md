@@ -2,7 +2,7 @@
 
 Studio éditorial : https://studio-production-3757.up.railway.app
 
-Le site expose aussi `/admin/`, qui ouvre l'interface EON NOVA sur mesure. Le [guide du Studio](studio/README.md) décrit son utilisation quotidienne. Directus **12.6.1** et PostgreSQL **18** conservent les données dans le projet Railway `eon-nova-cms`, environnement `production`. L'administration technique Directus reste sur https://directus-production-7591.up.railway.app/admin/. Les identifiants non sensibles sont dans `deployment.json`. Le site reste hébergé par Vercel, projet `eon2`, sources sur la branche `dev`. Aucun VPS existant n'a été modifié.
+Le site expose aussi `/admin/`, qui ouvre l'interface EON NOVA sur mesure. Le [guide du Studio](studio/README.md) décrit son utilisation quotidienne. Directus **12.6.1** et PostgreSQL **18** conservent les données dans le projet Railway `eon-nova-cms`, environnement `production`. L'administration technique Directus reste sur https://directus-production-7591.up.railway.app/admin/. Les identifiants non sensibles sont dans `deployment.json`. Le site reste hébergé par Vercel, projet `eon2`, sources sur la branche `dev`. La passerelle EON Olivia sur le VPS fournit aussi les traductions du Studio.
 
 ## Se connecter
 
@@ -14,7 +14,7 @@ Directus peut demander de déclarer le propriétaire du projet et d'accepter ses
 
 ## Contenus stockés dans Directus
 
-- **Textes & traductions** : 138 textes d'origine, classés par rubrique. Modifier Español, English et Français. Les clés techniques sont masquées et les libellés conservés pour retrouver les textes. Le Motion Lab utilise les mêmes contenus, y compris lors du changement de discipline.
+- **Textes & traductions** : 138 textes d'origine, classés par rubrique. Modifier l’espagnol dans le Studio ; les versions anglaise et française sont générées à la sauvegarde. Les clés techniques sont masquées et les libellés conservés pour retrouver les textes. Le Motion Lab utilise les mêmes contenus, y compris lors du changement de discipline.
 - **Images du site** : un visuel facultatif pour l'accueil, le studio, le service graphique et le service digital. Choisir l'emplacement, importer une image et fournir les trois descriptions accessibles. Formats : JPG, PNG, WebP, AVIF, GIF, 25 Mo maximum. Archiver l'image rétablit l'illustration animée d'origine.
 - **Publié** inclut un enregistrement dans le prochain build. **Brouillon** et **Archivé** l'excluent. Un texte exclu reprend sa valeur intégrée d'origine ; cela ne conserve pas la dernière modification publiée. Utiliser les versions de contenu pour préparer une révision tout en conservant la fiche publiée, puis promouvoir la version avant la publication du site.
 

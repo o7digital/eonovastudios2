@@ -28,7 +28,7 @@ export function validateJournalEntry(input){
  if(Buffer.byteLength(JSON.stringify(output))>850000)fail('Esta publicación es demasiado larga. Divídela en varias publicaciones.');
  return output;
 }
-export function createJournal({cms,write}){
+export function createJournal({cms,write,translator,authorizeWrite}){
  return {async handle({path,req,res,s,jsonBody,send}){
   if(!path.startsWith('/api/journal'))return false;
   if(path==='/api/journal'&&req.method==='GET'){
@@ -49,7 +49,14 @@ export function createJournal({cms,write}){
    }
    const duplicates=await cms(`/items/journal_entries?filter[slug][_eq]=${encodeURIComponent(input.slug)}&fields=id&limit=-1`,s.access);
    if(duplicates.some(row=>row.id!==entry))throw new JournalError(409,'Esta dirección ya existe. Cambia la dirección de la publicación.');
-   const previous=entry?await cms('/items/journal_entries/'+entry+'?fields=id,published_on',s.access):null;
+   const previous=entry?await cms('/items/journal_entries/'+entry+'?fields=id,published_on'+(translator?.enabled?',title,summary,blocks,translation_source':''),s.access):null;
+   if(translator?.enabled){
+    await authorizeWrite(s,'journal_entries',entry?'update':'create');
+    const groups=[{key:'title',value:input.title,previous:previous?.title,max:200},{key:'summary',value:input.summary,previous:previous?.summary,max:1500}];
+    for(const block of input.blocks){const old=previous?.blocks?.find(b=>b.id===block.id);groups.push({key:'block:'+block.id,value:block.kind==='text'?block.text:block.caption,previous:block.kind==='text'?old?.text:old?.caption,format:block.kind==='text'?'html':'text',max:block.kind==='text'?12000:500});}
+    for(const group of groups)group.previousHash=previous?.translation_source?.[group.key];
+    input.translation_source=await translator.apply(groups,s.id);
+   }
    const data={...input,...(!entry?{id:randomUUID()}:{}),...(!previous?.published_on&&input.status==='published'?{published_on:new Date().toISOString()}:{})};
    send(res,await write(()=>cms('/items/journal_entries'+(entry?'/'+entry:''),s.access,entry?'PATCH':'POST',data)),entry?200:201);return true;
   }
