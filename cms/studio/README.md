@@ -88,3 +88,13 @@ npm run build
 ```
 
 Les tests serveur couvrent les sessions, l'origine des écritures, les champs non autorisés, la validation des lots avant écriture, les permissions de lecture seule et la publication différée. Les contrôles navigateur utilisent le vrai CMS pour la connexion et une édition temporaire, puis restaurent la valeur d'origine. Les fichiers et enregistrements temporaires de contrôle sont supprimés. Aucune publication automatique ni aucun envoi externe n'est exécuté.
+
+## Édition visuelle et médias (novembre 2026)
+
+**Editar mi página** affiche le vrai design dans un cadre privé, sans exécuter les scripts du site. Cliquer sur un texte permet de le modifier dans la page ou dans le panneau latéral. Les trois langues et les tailles ordinateur, tablette et mobile sont disponibles. Les textes des expériences interactives restent aussi accessibles dans les rubriques. Les champs des rubriques utilisent désormais un éditeur visuel : negrita, énfasis, sauts de ligne, annuler/rétablir. Seules les balises inline autorisées sont conservées.
+
+**Fotos, videos y logo** propose cinq emplacements : logo (en-tête et pied), accueil, studio, graphique, digital. Le logo exige une image ; les quatre autres acceptent aussi MP4 et WebM. Images : 25 Mo, vidéos : 100 Mo. Upload avec progression, bibliothèque réutilisable des 100 fichiers les plus récents, aperçu privé, ajustement cover/contain et position horizontale/verticale. Les originaux sont conservés. Les vidéos publiques utilisent le lecteur natif, sans lecture automatique sonore. Les requêtes partielles permettent de déplacer la tête de lecture.
+
+La migration additive `cms/upgrade-media.mjs` ajoute les champs de cadrage et le choix de logo ; elle ne remplace aucun contenu existant. Le bootstrap inclut ces champs pour une future installation. Le compte build garde ses droits de lecture existants. Les fichiers du site sont copiés dans le build public uniquement quand leur emplacement est inclus.
+
+Les contrôles Firefox ont couvert une édition enregistrée puis restaurée, un upload de logo avec cadrage et un MP4 avec streaming partiel. Les fichiers et fiches de contrôle ont été supprimés.

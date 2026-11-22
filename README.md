@@ -21,4 +21,8 @@ Ne pas relier le domaine avant validation de l'aperçu. Hébergement : projet Ve
 
 Chat visiteurs : Olivia IA 3.5, avec passerelle et tenant dédiés. Voir [la documentation de connexion](docs/olivia.md). Vérification du contrat API : `npm test`.
 
-Les traductions partagées sont centralisées dans `src/i18n/translations.json` et rendues au build. Les pages de confidentialité sont `/aviso-de-privacidad/`, `/en/privacy-policy/` et `/fr/confidentialite/`. Elles reprennent les informations publiées sur https://www.o7digital.com/privacy-policy et précisent le traitement des conversations Olivia. Le contact utilise l’adresse o7 publiée sur cette page.
+Les traductions partagées sont centralisées dans `src/i18n/translations.json` et rendues au build. Contact public unique : **info@eonovastudios.com** (contact, pied de page et confidentialité dans les trois langues). Les pages de confidentialité sont `/aviso-de-privacidad/`, `/en/privacy-policy/` et `/fr/confidentialite/`. Elles décrivent le traitement des données sur le site EON, son hébergement Vercel et le service Olivia, avec le contact EON.
+
+Depuis `/admin/`, **Editar mi página** permet de modifier les textes directement sur le design, avec aperçu ordinateur, tablette et mobile. Les rubriques proposent aussi un éditeur visuel avec negrita, énfasis et sauts de ligne. **Fotos, videos y logo** gère le logo commun de l’en-tête et du pied de page, les photos et vidéos MP4/WebM des quatre emplacements, une bibliothèque réutilisable et le cadrage sans altérer les originaux. Images : 25 Mo ; vidéos : 100 Mo.
+
+La sauvegarde CMS est opérationnelle. Le bouton de publication autonome reste désactivé tant que le jeton permanent `VERCEL_DEPLOY_TOKEN` n’est pas configuré dans Vercel Production (la session CLI ne peut pas le créer : HTTP 403). Les déploiements manuels fonctionnent via `vercel deploy --prod --yes`.

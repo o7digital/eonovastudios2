@@ -29,9 +29,11 @@ const definitions = {
     field('label', 'string', { readonly: true, translations: translations('Texte à modifier') }, { max_length: 300 }),
     field('source', 'text', { hidden: true, readonly: true }), ...langFields,
   ] },
-  section_media: { label: 'Images du site', icon: 'photo_library', display: '{{placement}}', fields: [
-    field('placement', 'string', { required: true, interface: 'select-dropdown', translations: translations('Emplacement'), options: { choices: [{text:'Accueil · grand visuel',value:'hero'},{text:'Le studio',value:'studio'},{text:'Service · design graphique',value:'graphic'},{text:'Service · design digital',value:'digital'}] }, note: 'Une seule image publiée par emplacement. Sans image, le visuel animé original est conservé.' }, { is_unique: true }),
-    field('image', 'uuid', { interface: 'file-image', special: ['file'], required: true, options: { folder }, note: 'JPG, PNG, WebP, AVIF ou GIF, 25 Mo maximum.' }),
+  section_media: { label: 'Images du site', icon: 'perm_media', display: '{{placement}}', fields: [
+    field('placement', 'string', { required: true, interface: 'select-dropdown', translations: translations('Emplacement'), options: { choices: [{text:'Logo · en-tête et pied de page',value:'logo'},{text:'Accueil · photo ou vidéo',value:'hero'},{text:'Le studio',value:'studio'},{text:'Service · design graphique',value:'graphic'},{text:'Service · design digital',value:'digital'}] }, note: 'Une seule image publiée par emplacement. Sans image, le visuel animé original est conservé.' }, { is_unique: true }),
+    field('image', 'uuid', { interface: 'file', special: ['file'], required: true, options: { folder }, note: 'Images : 25 Mo. Vidéos MP4/WebM : 100 Mo. Logo : image uniquement.' }),
+    field('position', 'string', {note:'Cadrage horizontal et vertical, en pourcentage.'}, {default_value:'50% 50%'}),
+    field('fit','string',{interface:'select-dropdown',options:{choices:[{text:'Remplir',value:'cover'},{text:'Image entière',value:'contain'}]}},{default_value:'cover'}),
     ...['es','en','fr'].map(lang => field(`alt_${lang}`, 'string', { required: true, translations: translations(`Description accessible · ${lang.toUpperCase()}`) }, { max_length: 2000 })),
   ] },
 };
@@ -42,7 +44,11 @@ for (const [name, definition] of Object.entries(definitions)) {
     if (name === 'section_media') await api('/relations', 'POST', { collection: name, field: 'image', related_collection: 'directus_files', schema: { on_delete: 'SET NULL' } });
     console.log('Created', name);
   } else {
-    for (const definitionField of definition.fields) await api(`/fields/${name}/${definitionField.field}`, 'PATCH', {meta:definitionField.meta});
+    const existingFields = await api(`/fields/${name}`);
+    for (const definitionField of definition.fields) {
+      if(existingFields.some(item=>item.field===definitionField.field)) await api(`/fields/${name}/${definitionField.field}`, 'PATCH', {meta:definitionField.meta});
+      else await api(`/fields/${name}`, 'POST', definitionField);
+    }
   }
 }
 const dictionary = JSON.parse(await readFile(new URL('../src/i18n/translations.json', import.meta.url), 'utf8'));

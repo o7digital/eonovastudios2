@@ -5,6 +5,6 @@ import {applyCopy, getCms} from '../lib/cms.mjs';
 const {lang = 'es'} = Astro.props;
 const {rows} = await getCms();
 const translated = translate(await Astro.slots.render('default'), lang);
-const html = rows.length ? applyCopy(translated, rows, lang, dictionary) : translated;
+const html = rows.length ? applyCopy(translated, rows, lang, dictionary, {annotate:true}) : translated;
 ---
 <Fragment set:html={html} />

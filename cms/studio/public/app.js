@@ -1,3 +1,5 @@
+import {visualPageMarkup,mountVisualPage} from './visual-page.js?v=visual-2';
+import {mountEditors} from './editor.js?v=visual-2';
 import {createWorkspaceUI,workspaceSections} from './workspace-ui.js?v=es-mx-1';
 const $ = selector => document.querySelector(selector);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -23,7 +25,7 @@ const sections = [
   {id:'interface',name:'Idiomas e interfaz',number:'06',word:'HELLO.',description:'Los detalles que conectan.',detail:'Navegación, controles y textos compartidos.',anchor:'inicio'},
 ];
 const languages = {es:{name:'Español',label:'ES'},en:{name:'Inglés',label:'EN'},fr:{name:'Francés',label:'FR'}};
-const placementLabels = {hero:'Inicio · imagen principal',studio:'El estudio',graphic:'Diseño gráfico',digital:'Diseño digital'};
+const placementLabels = {logo:'Mi logo · encabezado y pie',hero:'Inicio · imagen o video principal',studio:'El estudio',graphic:'Diseño gráfico',digital:'Diseño digital'};
 const statusLabel = {published:'Incluir en el sitio',draft:'Borrador',archived:'Archivado'};
 const state = {texts:[],media:[],drafts:new Map(),route:'overview',lang:'es',filter:'',busy:false,profile:{},publishReady:false,canEdit:false,mediaEdit:null};
 const workspace=createWorkspaceUI({api,toast,confirmDialog,isCurrent:route=>state.route===route});
@@ -37,8 +39,8 @@ async function api(path, options = {}) {
 }
 function showLogin(){ $('#login-view').hidden=false;$('#studio-view').hidden=true;state.drafts.clear();workspace.reset();state.profile={};state.texts=[];state.media=[];$('#password').value=''; }
 function nav(){
-  const links=[{id:'overview',name:'Vista general',icon:'home'},...sections.map(s=>({...s,icon:s.id})),{id:'media',name:'Imágenes del sitio',icon:'media'}];
-  $('#main-nav').innerHTML=links.map(s=>`${s.id==='media'?'<div class="nav-separator"></div>':''}<a class="nav-item ${state.route===s.id?'active':''}" href="#${s.id}" ${state.route===s.id?'aria-current="page"':''}>${icon(s.icon)}<span>${s.name}</span>${s.id==='overview'?'':`<small class="nav-count">${s.id==='media'?state.media.filter(row=>row.status==='published').length:state.texts.filter(row=>row.section===s.id).length}</small>`}</a>`).join('');
+  const links=[{id:'overview',name:'Vista general',icon:'home'},{id:'visual',name:'Editar mi página',icon:'hero'},...sections.map(s=>({...s,icon:s.id})),{id:'media',name:'Fotos, videos y logo',icon:'media'}];
+  $('#main-nav').innerHTML=links.map(s=>`${s.id==='media'?'<div class="nav-separator"></div>':''}<a class="nav-item ${state.route===s.id?'active':''}" href="#${s.id}" ${state.route===s.id?'aria-current="page"':''}>${icon(s.icon)}<span>${s.name}</span>${s.id==='overview'?'':`<small class="nav-count">${s.id==='visual'?state.texts.length:s.id==='media'?state.media.filter(row=>row.status==='published').length:state.texts.filter(row=>row.section===s.id).length}</small>`}</a>`).join('');
   $('#main-nav').insertAdjacentHTML('beforeend','<div class="nav-separator"></div><div class="nav-heading suite-nav-heading">DALE VIDA AL STUDIO</div>'+workspaceSections.map(s=>`<a class="nav-item ${state.route===s.id?'active':''}" href="#${s.id}" ${state.route===s.id?'aria-current="page"':''}><span class="nav-glyph" aria-hidden="true">${s.glyph}</span><span>${s.name}</span></a>`).join(''));
 }
 function pageHeading(eyebrow,title,description,actions=''){
@@ -50,17 +52,17 @@ function overview(){
   const published=state.texts.filter(row=>row.status==='published').length;
   const drafts=state.texts.filter(row=>row.status==='draft').length;
   return pageHeading('VISTA GENERAL / EON NOVA','Tu imaginación. Tu Studio.','Todo lo que le da vida a tu sitio, reunido en tu propio espacio.')+
-    `<div class="welcome-grid"><article class="welcome-card"><span class="eyebrow">BIENVENIDO A TU UNIVERSO</span><h2>De la idea<br>al próximo <em>frame.</em></h2><p>Tus textos e imágenes marcan el tono.<br>Escribe el próximo capítulo.</p><a class="text-link" href="#hero">Empezar por el inicio ↗</a><span class="welcome-star" aria-hidden="true">✳</span></article>${publicationCard()}</div>`+
-    `<div class="stats-grid">${[[published,'01 / TEXTOS ACTIVOS','Las palabras de tu universo'],[state.media.filter(row=>row.status==='published').length,'02 / IMÁGENES DEL SITIO','Tus imágenes personalizadas'],[3,'03 / IDIOMAS','Español · Inglés · Francés'],[drafts,'04 / BORRADORES','Las ideas en preparación']].map(([value,label,detail])=>`<article class="stat-card"><span class="stat-label">${label}</span><div class="stat-value">${value}</div><p class="stat-detail">${detail}</p></article>`).join('')}</div>`+
+    `<div class="welcome-grid"><article class="welcome-card"><span class="eyebrow">BIENVENIDO A TU UNIVERSO</span><h2>De la idea<br>al próximo <em>frame.</em></h2><p>Tus textos, fotos y videos marcan el tono.<br>Escribe el próximo capítulo.</p><a class="text-link" href="#visual">Editar mi página</a><span class="welcome-star" aria-hidden="true">✳</span></article>${publicationCard()}</div>`+
+    `<div class="stats-grid">${[[published,'01 / TEXTOS ACTIVOS','Las palabras de tu universo'],[state.media.filter(row=>row.status==='published').length,'02 / MEDIOS DEL SITIO','Fotos, videos y logo'],[3,'03 / IDIOMAS','Español · Inglés · Francés'],[drafts,'04 / BORRADORES','Las ideas en preparación']].map(([value,label,detail])=>`<article class="stat-card"><span class="stat-label">${label}</span><div class="stat-value">${value}</div><p class="stat-detail">${detail}</p></article>`).join('')}</div>`+
     `${state.drafts.size?`<div class="editor-intro">${icon('info')}<span>${state.drafts.size} texto(s) modificado(s) pendiente(s) de guardar. Tus cambios siguen disponibles en cada sección.</span></div>`:''}`+
     `<div class="section-title"><h2>Tu sitio, sección por sección.</h2><span>06 ESPACIOS POR EXPLORAR</span></div><div class="section-grid">${sections.map(s=>`<a class="section-card" href="#${s.id}"><div class="section-art art-${s.id}"><span class="art-number">${s.number} / EON NOVA</span><span class="art-word">${s.word}</span></div><div class="section-card-copy"><div class="section-card-top"><h3>${s.name}</h3><span>↗</span></div><p>${s.description}</p><div class="card-meta"><span>${state.texts.filter(row=>row.section===s.id).length} textos</span><i class="dot"></i><span>3 idiomas</span><i class="dot"></i><span>Editar ↗</span></div></div></a>`).join('')}</div>`+
     `<div class="quick-links"><div><strong>Una imagen puede cambiarlo todo.</strong><p>Personaliza las imágenes de tu sitio, a tu manera.</p></div><a href="#media"><strong>Abrir biblioteca de medios</strong><span>↗</span></a></div><div class="section-title suite-section-title"><h2>Tu Studio va más allá.</h2></div><div class="suite-launch-grid">${workspaceSections.map(s=>`<a href="#${s.id}" class="suite-launch"><span>${s.glyph}</span><strong>${s.name}</strong><small>Abrir espacio ↗</small></a>`).join('')}</div>`;
 }
-function currentRows(){return state.texts.filter(row=>row.section===state.route);}
+function currentRows(){return state.route==='visual'?state.texts:state.texts.filter(row=>row.section===state.route);}
 function values(row){return {...row,...state.drafts.get(row.id)};}
 function editableCard(row){
   const data=values(row),title=plain(row.label || row.source),long=row.source.length>160;
-  return `<article class="text-card ${long?'long':''} ${state.drafts.has(row.id)?'changed':''}" data-card="${row.id}"><div class="field-head"><label class="field-label" for="text-${row.id}">${esc(title)}</label><span class="field-status ${esc(data.status)}" data-badge="${row.id}">${data.status==='published'?'Listo para el sitio':data.status==='draft'?'Borrador':'Archivado'}</span></div>${state.lang!=='es'?`<p class="source-hint">Español · ${esc(plain(data.es))}</p>`:''}<textarea id="text-${row.id}" data-text="${row.id}" rows="${long?5:3}" ${!state.canEdit?'readonly':''} lang="${state.lang}" spellcheck="true">${esc(data[state.lang])}</textarea><div class="field-foot"><span><i class="editable-dot"></i>${state.canEdit?'Editable':'Solo lectura'} · ${languages[state.lang].name}</span><select aria-label="Visibilidad: ${esc(title.slice(0,90))}" data-status="${row.id}" ${!state.canEdit?'disabled':''}>${Object.entries(statusLabel).map(([value,label])=>`<option value="${value}" ${value===data.status?'selected':''}>${label}</option>`).join('')}</select></div></article>`;
+  return `<article class="text-card ${long?'long':''} ${state.drafts.has(row.id)?'changed':''}" data-card="${row.id}"><div class="field-head"><label id="label-${row.id}" class="field-label" for="text-${row.id}">${esc(title)}</label><span class="field-status ${esc(data.status)}" data-badge="${row.id}">${data.status==='published'?'Listo para el sitio':data.status==='draft'?'Borrador':'Archivado'}</span></div>${state.lang!=='es'?`<p class="source-hint">Español · ${esc(plain(data.es))}</p>`:''}<div class="visual-editor"><div class="rich-toolbar" role="toolbar" aria-label="Formato del texto"><button type="button" data-format="bold" title="Negrita (Ctrl/Cmd+B)" aria-label="Negrita"><strong>B</strong></button><button type="button" data-format="italic" title="Énfasis (Ctrl/Cmd+I)" aria-label="Énfasis"><em>Énfasis</em></button><span class="toolbar-divider"></span><button type="button" data-format="undo" aria-label="Deshacer" title="Deshacer">↶</button><button type="button" data-format="redo" aria-label="Rehacer" title="Rehacer">↷</button><span class="editor-mode">VISTA VISUAL</span></div><div id="text-${row.id}" class="rich-field ${long?'rich-long':''}" data-rich-text="${row.id}" role="textbox" aria-multiline="true" aria-labelledby="label-${row.id}" lang="${state.lang}" spellcheck="true">${esc(data[state.lang])}</div><div class="rich-bottom"><span>Formato listo para el sitio</span><span class="editor-length"></span></div></div><div class="field-foot"><span><i class="editable-dot"></i>${state.canEdit?'Editable':'Solo lectura'} · ${languages[state.lang].name}</span><select aria-label="Visibilidad: ${esc(title.slice(0,90))}" data-status="${row.id}" ${!state.canEdit?'disabled':''}>${Object.entries(statusLabel).map(([value,label])=>`<option value="${value}" ${value===data.status?'selected':''}>${label}</option>`).join('')}</select></div></article>`;
 }
 function saveBar(){return `<div class="editor-savebar"><div><strong id="save-summary">${pendingSummary()}</strong><small>Guardar conserva tus textos. Publicar el sitio es un paso aparte.</small></div><div class="savebar-actions"><button class="button secondary" data-revert ${!sectionDirty()?'disabled':''}>Descartar cambios</button><button class="button primary" data-save ${!sectionDirty()||!state.canEdit?'disabled':''}>Guardar sección <span>↗</span></button></div></div>`;}
 function sectionDirty(){return currentRows().filter(row=>state.drafts.has(row.id)).length;}
@@ -68,30 +70,32 @@ function pendingSummary(){const n=sectionDirty();return n?`${n} texto${n!==1?'s'
 function editor(){
   const section=sections.find(s=>s.id===state.route);
   return pageHeading(`${section.number} / TU SITIO`,section.name,section.detail,viewLinks(section.anchor))+
-    `<div class="editor-intro">${icon('info')}<span>Elige un idioma y edita tus textos. Los campos verdes son editables. Las etiquetas <strong>&lt;br&gt;</strong> y <strong>&lt;em&gt;</strong> conservan los saltos de línea y el énfasis del sitio.</span></div>`+
+    `<div class="editor-intro">${icon('info')}<span>Elige un idioma y edita tus textos. Los campos verdes son editables. Selecciona palabras para aplicar <strong>negrita</strong> o <em>énfasis</em>. Pulsa Enter para un salto de línea. Así se verá el formato en tu sitio.</span></div>`+
     `<div class="editor-toolbar"><div class="language-tabs" role="group" aria-label="Idioma del contenido">${Object.entries(languages).map(([key,value])=>`<button class="language-tab ${state.lang===key?'active':''}" data-language="${key}" aria-pressed="${state.lang===key}">${value.name}<small>${value.label}</small></button>`).join('')}</div><label class="sr-only" for="text-search">Buscar texto</label><input id="text-search" class="search-box" type="search" placeholder="Buscar en esta sección…" value="${esc(state.filter)}"></div>`+
     `<div class="field-list">${currentRows().map(editableCard).join('')}</div><p id="search-empty" class="muted" hidden>No hay textos que coincidan con tu búsqueda.</p>${saveBar()}`;
 }
-function mediaPage(){return pageHeading('TU UNIVERSO VISUAL','Las imágenes marcan el tono.','Personaliza las cuatro ubicaciones del sitio. Las imágenes animadas originales siguen disponibles.')+
-  `<div class="editor-intro">${icon('info')}<span>Cada ubicación admite una imagen. Los archivos se guardan en tu biblioteca y aparecen en el sitio después de publicarlo.</span></div>`+
+function mediaPage(){return pageHeading('TU UNIVERSO VISUAL','Tu identidad. En cada frame.','Tu logo, tus fotos y tus videos. Un espacio para darles vida y elegir dónde aparecen.')+
+  `<div class="editor-intro">${icon('info')}<span>Sube archivos o reutiliza los de tu biblioteca. Ajusta el encuadre sin modificar el original. Imágenes: 25 MB. Videos MP4 y WebM: 100 MB.</span></div>`+
   `<div class="media-grid">${Object.entries(placementLabels).map(([placement,label],index)=>{
     const row=state.media.find(row=>row.placement===placement),shown=row && row.status==='published';
-    return `<article class="media-card"><div class="media-visual">${row?.image?.id?`<img src="/api/image/${row.image.id}" alt="${esc(row.alt_es)}" loading="lazy">`:'<span class="media-default">✳</span>'}${!shown?'<span class="original-label">LA IMAGEN ORIGINAL SIGUE ACTIVA</span>':''}</div><div class="media-card-body"><div class="media-card-heading"><h3>${label}</h3><span class="eyebrow">0${index+1}</span></div><p>${row?`${esc(row.image?.filename_download || 'Image')} · ${esc(statusLabel[row.status] || row.status)}`:'Agrega tu imagen o conserva la creación original.'}</p><div class="media-card-actions"><button class="button ${row?'secondary':'primary'}" data-edit-media="${placement}" ${!state.canEdit?'disabled':''}>${row?'Editar imagen':'Agregar imagen'} <span>↗</span></button>${row && row.status!=='archived'?`<button class="button secondary" data-archive-media="${row.id}" ${!state.canEdit?'disabled':''}>Restaurar original</button>`:''}</div></div></article>`;
+    return `<article class="media-card"><div class="media-visual">${row?.image?.id?`<${row.image.type?.startsWith("video/")?'video controls preload="metadata"':'img loading="lazy"'} src="/api/image/${row.image.id}" alt="${esc(row.alt_es)}">${row.image.type?.startsWith("video/")?'</video>':''}`:'<span class="media-default">✳</span>'}${!shown?'<span class="original-label">DISEÑO ORIGINAL ACTIVO</span>':''}</div><div class="media-card-body"><div class="media-card-heading"><h3>${label}</h3><span class="eyebrow">0${index+1}</span></div><p>${row?`${esc(row.image?.filename_download || 'Image')} · ${esc(statusLabel[row.status] || row.status)}`:'Agrega tu imagen o conserva la creación original.'}</p><div class="media-card-actions"><button class="button ${row?'secondary':'primary'}" data-edit-media="${placement}" ${!state.canEdit?'disabled':''}>${row?'Editar medio':placement==='logo'?'Agregar mi logo':'Agregar foto o video'} <span>↗</span></button>${row && row.status!=='archived'?`<button class="button secondary" data-archive-media="${row.id}" ${!state.canEdit?'disabled':''}>Restaurar original</button>`:''}</div></div></article>`;
   }).join('')}</div>`;
 }
+function visualPage(){return pageHeading('EDICIÓN VISUAL','Tu sitio es tu lienzo.','Escribe sobre el diseño, cambia tus fotos y revisa cada pantalla.')+visualPageMarkup(state.lang)+saveBar();}
 function render(){
-  nav();$('#breadcrumb').textContent=state.route==='overview'?'Vista general':state.route==='media'?'Imágenes del sitio':(sections.find(s=>s.id===state.route)||workspaceSections.find(s=>s.id===state.route)).name;
+  nav();$('#breadcrumb').textContent=state.route==='visual'?'Editar mi página':state.route==='overview'?'Vista general':state.route==='media'?'Fotos, videos y logo':(sections.find(s=>s.id===state.route)||workspaceSections.find(s=>s.id===state.route)).name;
   if(workspaceSections.some(s=>s.id===state.route)){workspace.open(state.route);return;}
-  $('#content').innerHTML=state.route==='overview'?overview():state.route==='media'?mediaPage():editor();
+  $('#content').innerHTML=state.route==='visual'?visualPage():state.route==='overview'?overview():state.route==='media'?mediaPage():editor();
   $('#content').querySelectorAll('[data-publish]').forEach(button=>button.addEventListener('click',publish));
   $('#content').querySelectorAll('[data-language]').forEach(button=>button.addEventListener('click',()=>{state.lang=button.dataset.language;render();}));
-  $('#content').querySelectorAll('[data-text]').forEach(input=>input.addEventListener('input',()=>{recordDraft(input.dataset.text,state.lang,input.value);updatePending();}));
+  mountEditors($('#content'),{editable:state.canEdit,onChange:(id,value)=>{recordDraft(id,state.lang,value);updatePending();}});
   $('#content').querySelectorAll('[data-status]').forEach(input=>input.addEventListener('change',()=>{recordDraft(input.dataset.status,'status',input.value);updatePending();}));
   $('#content').querySelector('[data-save]')?.addEventListener('click',saveTexts);
   $('#content').querySelector('[data-revert]')?.addEventListener('click',async()=>{if(await confirmDialog('¿Descartar los cambios?','Los textos guardados se conservan. Solo se descartan los cambios sin guardar de esta sección.')){for(const row of currentRows())state.drafts.delete(row.id);render();}});
   $('#text-search')?.addEventListener('input',event=>{state.filter=event.target.value;filterCards();});
   $('#content').querySelectorAll('[data-edit-media]').forEach(button=>button.addEventListener('click',()=>openMedia(button.dataset.editMedia)));
   $('#content').querySelectorAll('[data-archive-media]').forEach(button=>button.addEventListener('click',()=>archiveMedia(button.dataset.archiveMedia)));
+  if(state.route==='visual')mountVisualPage($('#content'),{lang:state.lang,rows:state.texts,valueOf:values,onText:(id,lang,value)=>{recordDraft(id,lang,value);updatePending();},onMedia:openMedia,canEdit:state.canEdit,media:state.media});
   filterCards();
 }
 function recordDraft(id,field,value){
@@ -100,6 +104,10 @@ function recordDraft(id,field,value){
   if(Object.keys(draft).length)state.drafts.set(id,draft);else state.drafts.delete(id);
 }
 function updatePending(){
+  const editable=state.canEdit&&!state.busy;
+  $('#content').querySelectorAll('[data-rich-text]').forEach(field=>field.contentEditable=String(editable));
+  const doc=$('#content iframe')?.contentDocument;doc?.querySelectorAll('[data-eon-text]').forEach(field=>field.contentEditable=String(editable));
+  $('#content').querySelectorAll('[data-format],[data-status]').forEach(field=>field.disabled=!editable);
   $('#save-summary').textContent=pendingSummary();
   $('[data-save]').disabled=!sectionDirty()||state.busy||!state.canEdit;$('[data-revert]').disabled=!sectionDirty()||state.busy;
   for(const row of currentRows()){
@@ -127,7 +135,7 @@ async function load(){
   $('#login-view').hidden=true;$('#studio-view').hidden=false;route();
 }
 function route(){
-  const hash=location.hash.slice(1),allowed=['overview','media',...sections.map(s=>s.id),...workspaceSections.map(s=>s.id)];state.route=allowed.includes(hash)?hash:'overview';state.filter='';closeMenu();render();
+  const hash=location.hash.slice(1),allowed=['overview','visual','media',...sections.map(s=>s.id),...workspaceSections.map(s=>s.id)];state.route=allowed.includes(hash)?hash:'overview';state.filter='';closeMenu();render();
 }
 function openMenu(){ $('#sidebar').classList.add('open');$('#sidebar-shade').hidden=false;$('#menu-toggle').setAttribute('aria-expanded','true'); }
 function closeMenu(){ $('#sidebar').classList.remove('open');$('#sidebar-shade').hidden=true;$('#menu-toggle').setAttribute('aria-expanded','false'); }
@@ -147,32 +155,58 @@ async function publish(){
 }
 function openMedia(placement){
   const row=state.media.find(row=>row.placement===placement);
-  state.mediaEdit={id:row?.id,fileId:row?.image?.id,placement};
-  $('#media-dialog-title').textContent=row?'Editar imagen':'Agregar imagen';$('#media-form').reset();$('#media-placement').value=placement;$('#media-placement').disabled=Boolean(row);
+  state.mediaEdit={id:row?.id,fileId:row?.image?.id,placement,dirty:false};
+  $('#media-dialog-title').textContent=row?'Editar medio':'Agregar foto o video';$('#media-form').reset();$('#library-grid').hidden=true;$('#media-placement').value=placement;$('#media-placement').disabled=Boolean(row);
   for(const lang of Object.keys(languages))$(`#alt-${lang}`).value=row?.[`alt_${lang}`] || '';
   $('#media-status').value=row?.status==='archived'?'published':row?.status || 'published';
-  $('#upload-label').textContent=row?.image?.filename_download || 'Elegir imagen';$('#media-error').hidden=true;$('#media-preview').hidden=!row?.image?.id;
-  if(row?.image?.id)$('#media-preview').src='/api/image/'+row.image.id;
+  $('#upload-label').textContent=row?.image?.filename_download || 'Elegir foto o video';$('#media-error').hidden=true;$('#media-preview').hidden=true;$('#video-preview').hidden=true;
+  if(row?.image?.id)showMediaPreview('/api/image/'+row.image.id,row.image.type);
+  const [x,y]=(row?.position||'50% 50%').split(' ').map(Number.parseFloat);$('#focal-x').value=x;$('#focal-y').value=y;$('#media-fit').value=placement==='logo'?'contain':row?.fit||'cover';updateFraming();
+  $('#media-file').accept=placement==='logo'?'image/jpeg,image/png,image/webp,image/avif,image/gif':'image/jpeg,image/png,image/webp,image/avif,image/gif,video/mp4,video/webm';
   for(const option of $('#media-placement').options)option.disabled=option.value!==placement&&state.media.some(row=>row.placement===option.value);
   $('#media-dialog').showModal();
 }
-function closeMedia(){if($('#save-media').disabled)return;$('#media-dialog').close();state.mediaEdit=null;if(previewBlob){URL.revokeObjectURL(previewBlob);previewBlob=null;}}
+async function closeMedia(){if($('#save-media').disabled)return;if(state.mediaEdit?.dirty&&!await confirmDialog('¿Cerrar sin guardar?','Los cambios de este medio todavía no están guardados.'))return;$('#video-preview').pause();$('#media-dialog').close();state.mediaEdit=null;if(previewBlob){URL.revokeObjectURL(previewBlob);previewBlob=null;}}
+function showMediaPreview(src,type){
+  const video=type?.startsWith('video/');$('#media-preview').hidden=video;$('#video-preview').hidden=!video;$('#video-preview').pause();
+  const preview=$(video?'#video-preview':'#media-preview');preview.src=src;
+}
+function updateFraming(){
+  for(const preview of [$('#media-preview'),$('#video-preview')]){preview.style.objectPosition=`${$('#focal-x').value}% ${$('#focal-y').value}%`;preview.style.objectFit=$('#media-fit').value;}
+}
+for(const id of ['focal-x','focal-y','media-fit'])$('#'+id).addEventListener('input',updateFraming);
+function uploadMedia(file,button){
+  return new Promise((resolve,reject)=>{
+    const xhr=new XMLHttpRequest();xhr.open('POST','/api/upload');xhr.setRequestHeader('Content-Type',file.type);xhr.setRequestHeader('X-File-Name',encodeURIComponent(file.name));xhr.timeout=240000;
+    xhr.upload.onprogress=event=>{if(event.lengthComputable)button.textContent=`Subiendo… ${Math.round(event.loaded/event.total*100)}%`;};
+    xhr.onload=()=>{try{const data=JSON.parse(xhr.responseText);if(xhr.status>=200&&xhr.status<300)resolve(data);else reject(new Error(data.error||'No se pudo subir el archivo.'));}catch{reject(new Error('No se pudo leer la respuesta. Intenta de nuevo.'));}};
+    xhr.onerror=()=>reject(new Error('Revisa tu conexión e intenta de nuevo.'));xhr.ontimeout=()=>reject(new Error('La carga tardó demasiado. Intenta con un archivo más pequeño.'));xhr.send(file);
+  });
+}
+$('#choose-library').addEventListener('click',async()=>{
+  const grid=$('#library-grid');grid.hidden=!grid.hidden;if(grid.hidden)return;grid.innerHTML='<p>Cargando tu biblioteca…</p>';
+  try{const files=(await api('/api/library')).filter(file=>['image/jpeg','image/png','image/webp','image/avif','image/gif','video/mp4','video/webm'].includes(file.type)&&($('#media-placement').value!=='logo'||!file.type.startsWith('video/')));
+    grid.innerHTML=files.length?files.map(file=>`<button type="button" class="library-item" data-library-id="${esc(file.id)}">${file.type.startsWith('video/')?'<span class="library-play">▶ VIDEO</span>':`<img src="/api/image/${esc(file.id)}" loading="lazy" alt="">`}<span>${esc(file.filename_download)}</span></button>`).join(''):'<p>Tu biblioteca está lista para recibir tus primeros archivos.</p>';
+    grid.querySelectorAll('[data-library-id]').forEach(button=>button.addEventListener('click',()=>{const file=files.find(item=>item.id===button.dataset.libraryId);state.mediaEdit.fileId=file.id;state.mediaEdit.dirty=true;$('#media-file').value='';$('#upload-label').textContent=file.filename_download;showMediaPreview('/api/image/'+file.id,file.type);updateFraming();grid.hidden=true;}));
+  }catch(error){grid.textContent=error.message;}
+});
 $('#media-file').addEventListener('change',()=>{
   const file=$('#media-file').files[0];if(!file)return;
-  $('#upload-label').textContent=file.name;if(previewBlob)URL.revokeObjectURL(previewBlob);previewBlob=URL.createObjectURL(file);$('#media-preview').src=previewBlob;$('#media-preview').hidden=false;
-  state.mediaEdit.fileId=null;
+  $('#upload-label').textContent=file.name;if(previewBlob)URL.revokeObjectURL(previewBlob);previewBlob=URL.createObjectURL(file);showMediaPreview(previewBlob,file.type);updateFraming();
+  state.mediaEdit.fileId=null;state.mediaEdit.dirty=true;
 });
+$('#media-form').addEventListener('input',()=>{if(state.mediaEdit)state.mediaEdit.dirty=true;});
 $('#media-form').addEventListener('submit',async event=>{
   event.preventDefault();const button=$('#save-media'),edit=state.mediaEdit,file=$('#media-file').files[0];if(!edit)return;
-  if(!edit.fileId&&!file){$('#media-error').textContent='Elige una imagen.';$('#media-error').hidden=false;return;}
-  if(file&&(!['image/jpeg','image/png','image/webp','image/avif','image/gif'].includes(file.type)||file.size>25*1024*1024)){ $('#media-error').textContent='Elige una imagen compatible de máximo 25 MB.';$('#media-error').hidden=false;return; }
+  if(!edit.fileId&&!file){$('#media-error').textContent='Elige una foto o un video.';$('#media-error').hidden=false;return;}
+  if(file&&(!['image/jpeg','image/png','image/webp','image/avif','image/gif','video/mp4','video/webm'].includes(file.type)||file.size>(file.type.startsWith('video/')?100:25)*1024*1024||($('#media-placement').value==='logo'&&file.type.startsWith('video/')))){ $('#media-error').textContent='Usa una imagen (25 MB máx.) o un video MP4/WebM (100 MB máx.). El logo requiere una imagen.';$('#media-error').hidden=false;return; }
   button.disabled=true;button.textContent='Guardando…';$('#media-error').hidden=true;
   try{
-    if(file&&!edit.fileId){const uploaded=await api('/api/upload',{method:'POST',body:file,headers:{'Content-Type':file.type,'X-File-Name':encodeURIComponent(file.name)}});edit.fileId=uploaded.id;}
-    const input={placement:$('#media-placement').value,image:edit.fileId,status:$('#media-status').value,...Object.fromEntries(Object.keys(languages).map(lang=>['alt_'+lang,$('#alt-'+lang).value.trim()]))};
+    if(file&&!edit.fileId){const uploaded=await uploadMedia(file,button);edit.fileId=uploaded.id;}
+    const input={placement:$('#media-placement').value,image:edit.fileId,status:$('#media-status').value,position:`${$('#focal-x').value}% ${$('#focal-y').value}%`,fit:$('#media-fit').value,...Object.fromEntries(Object.keys(languages).map(lang=>['alt_'+lang,$('#alt-'+lang).value.trim()]))};
     const result=await api('/api/media'+(edit.id?'/'+edit.id:''),{method:edit.id?'PATCH':'POST',body:JSON.stringify(input)});
-    state.media=state.media.filter(row=>row.id!==result.id);state.media.push(result);button.disabled=false;closeMedia();render();toast('Tu imagen está guardada.');
-  }catch(error){$('#media-error').textContent=error.message;$('#media-error').hidden=false;}finally{button.disabled=false;button.innerHTML='Guardar imagen <span>↗</span>';}
+    state.media=state.media.filter(row=>row.id!==result.id);state.media.push(result);button.disabled=false;edit.dirty=false;closeMedia();render();toast('Tu medio está guardado.');
+  }catch(error){$('#media-error').textContent=error.message;$('#media-error').hidden=false;}finally{button.disabled=false;button.innerHTML='Guardar medio';}
 });
 async function archiveMedia(id){
   if(!await confirmDialog('¿Restaurar la imagen original?','La imagen se conserva en tu biblioteca. La próxima vez que se publique el sitio, se usará la imagen original.'))return;
@@ -184,12 +218,12 @@ $('#menu-toggle').addEventListener('click',()=>$('#sidebar').classList.contains(
 $('#main-nav').addEventListener('click',event=>{if(event.target.closest('a'))closeMenu();});
 window.addEventListener('keydown',event=>{if(event.key==='Escape')closeMenu();});
 window.addEventListener('hashchange',()=>{if(!$('#studio-view').hidden)route();});
-window.addEventListener('beforeunload',event=>{if(state.drafts.size||workspace.hasUnsaved()){event.preventDefault();event.returnValue='';}});
+window.addEventListener('beforeunload',event=>{if(state.drafts.size||workspace.hasUnsaved()||state.mediaEdit?.dirty){event.preventDefault();event.returnValue='';}});
 $('#show-password').addEventListener('click',()=>{const password=$('#password'),visible=password.type==='password';password.type=visible?'text':'password';$('#show-password').textContent=visible?'Ocultar':'Ver';$('#show-password').setAttribute('aria-label',visible?'Ocultar contraseña':'Mostrar contraseña');});
 $('#login-form').addEventListener('submit',async event=>{
   event.preventDefault();const button=event.target.querySelector('[type="submit"]');button.disabled=true;button.textContent='Abriendo tu Studio…';$('#login-error').hidden=true;
   try{await api('/api/login',{method:'POST',body:JSON.stringify({email:$('#email').value.trim(),password:$('#password').value})});$('#password').value='';await load();}
   catch(error){$('#login-error').textContent=error.message;$('#login-error').hidden=false;}finally{button.disabled=false;button.innerHTML='Entrar a mi Studio <span>↗</span>';}
 });
-$('#logout').addEventListener('click',async()=>{if((state.drafts.size||workspace.hasUnsaved())&&!await confirmDialog('¿Salir del Studio?','Se perderán tus cambios sin guardar.'))return;try{await api('/api/logout',{method:'POST',body:'{}'});showLogin();}catch(error){toast(error.message,true);}});
+$('#logout').addEventListener('click',async()=>{if((state.drafts.size||workspace.hasUnsaved()||state.mediaEdit?.dirty)&&!await confirmDialog('¿Salir del Studio?','Se perderán tus cambios sin guardar.'))return;try{await api('/api/logout',{method:'POST',body:'{}'});showLogin();}catch(error){toast(error.message,true);}});
 try{await load();}catch(error){showLogin();if(!/Inicia sesión|sesión/.test(error.message)){ $('#login-error').textContent='El Studio no puede reconectarse por ahora. Puedes intentar iniciar sesión de nuevo.';$('#login-error').hidden=false; }}

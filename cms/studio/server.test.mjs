@@ -21,6 +21,8 @@ async function fixture(t, options = {}) {
       return result([row]);
     }
     if(path==='/items/section_media')return result([]);
+    if(path==='/folders')return result([]);
+    if(new URL(url).origin==='https://www.eonovastudios.com')return new Response('<!doctype html><html><head></head><body><main>Preview</main><script>window.forbidden=true</script></body></html>',{headers:{'Content-Type':'text/html'}});
     if(path==='/auth/logout')return new Response(null,{status:204});
     throw new Error('Unexpected upstream path '+path);
   };
@@ -73,4 +75,19 @@ test('Studio preserves the logged-in identity permissions and refreshes expiring
   assert.ok(calls.some(call=>call.path==='/auth/refresh'));
   const denied=await request('/api/texts',{method:'PATCH',headers:{Cookie:cookie},body:JSON.stringify({items:[{id,fr:'Not authorized'}]})});assert.equal(denied.status,403);
   assert.equal(calls.find(call=>call.method==='PATCH').headers.Authorization,'Bearer private-access-token');
+});
+
+
+test('visual preview requires authentication, fixes its target, and disables scripts inside the same-origin frame',async t=>{
+ const {request,login,calls}=await fixture(t);
+ assert.equal((await request('/api/preview?lang=es')).status,401);
+ const cookie=(await login()).headers.get('set-cookie').split(';')[0];
+ assert.equal((await request('/api/preview?lang=other',{headers:{Cookie:cookie}})).status,400);
+ const preview=await request('/api/preview?lang=fr&url=https://other.example',{headers:{Cookie:cookie}});
+ assert.equal(preview.status,200);assert.equal(preview.headers.get('x-frame-options'),'SAMEORIGIN');
+ assert.match(preview.headers.get('content-security-policy'),/script-src 'none'/);
+ assert.match(preview.headers.get('content-security-policy'),/frame-ancestors 'self'/);
+ assert.match(await preview.text(),/<base href="https:\/\/www.eonovastudios.com\//);
+ assert.equal(calls.at(-1).path,'/fr/');
+ const library=await request('/api/library',{headers:{Cookie:cookie}});assert.equal(library.status,200);assert.deepEqual(await library.json(),[]);
 });

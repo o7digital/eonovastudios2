@@ -1,5 +1,6 @@
 import http from 'node:http';
 import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID } from 'node:crypto';
+import { Readable } from 'node:stream';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import {createWorkspace,WorkspaceError} from './workspace.mjs';
@@ -7,10 +8,12 @@ import {createSocialMedia,SocialMediaError} from './social-media.mjs';
 
 const uuid = /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i;
 const locales = ['es', 'en', 'fr'];
-const placements = ['hero', 'studio', 'graphic', 'digital'];
+const placements = ['hero', 'studio', 'graphic', 'digital', 'logo'];
+const imageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif'];
+const mediaTypes = [...imageTypes, 'video/mp4', 'video/webm'];
 const statuses = ['draft', 'published', 'archived'];
 const textFields = 'id,label,section,source,es,en,fr,status,sort';
-const mediaFields = 'id,placement,image.id,image.type,image.filename_download,alt_es,alt_en,alt_fr,status,sort';
+const mediaFields = 'id,placement,image.id,image.type,image.filename_download,alt_es,alt_en,alt_fr,status,sort,position,fit';
 class ApiError extends Error { constructor(status, message) { super(message); this.status = status; } }
 
 export function createStudioServer(options = {}) {
@@ -85,7 +88,7 @@ export function createStudioServer(options = {}) {
   const socialMedia=createSocialMedia({cms:config.cms,editorToken:config.mediaReadToken,secret:config.secret,origin:config.origin,fetcher:config.fetcher});
   const workspace=createWorkspace({cms,crm:config.crm,tenant:config.tenant,serviceEmail:config.serviceEmail,servicePassword:config.servicePassword,ownerEmail:config.ownerEmail,origin:config.origin,fetcher:config.fetcher,socialMedia});
   async function body(req, limit = 262144) {
-    if (Number(req.headers['content-length']) > limit) throw new ApiError(413, 'El archivo es demasiado grande (máximo 25 MB).');
+    if (Number(req.headers['content-length']) > limit) throw new ApiError(413, 'El archivo supera el tamaño permitido.');
     let size = 0; const chunks = [];
     for await (const chunk of req) { size += chunk.length; if (size > limit) throw new ApiError(413, 'El contenido supera el tamaño permitido.'); chunks.push(chunk); }
     return Buffer.concat(chunks);
@@ -134,6 +137,16 @@ export function createStudioServer(options = {}) {
       }
       const s = await authenticated(req, res);
       if(await workspace.handle({path,url,req,res,s,jsonBody,send,body}))return;
+      if (path === '/api/preview' && req.method === 'GET') {
+        const lang = url.searchParams.get('lang') || 'es';
+        if (!locales.includes(lang)) throw new ApiError(400, 'Elige un idioma válido.');
+        const page = await config.fetcher(new URL(lang === 'es' ? '/' : `/${lang}/`,config.website), {signal:AbortSignal.timeout(30000),redirect:'error'});
+        if (!page.ok) throw new ApiError(502,'La vista previa no está disponible.');
+        const html=(await page.text()).replace(/<head([^>]*)>/i,`<head$1><base href="${config.website}/">`);
+        res.setHeader('X-Frame-Options','SAMEORIGIN');
+        res.setHeader('Content-Security-Policy',`default-src 'none'; script-src 'none'; img-src 'self' ${config.website} https://eonovastudios.com data:; style-src ${config.website} https://eonovastudios.com 'unsafe-inline'; font-src ${config.website} https://eonovastudios.com; media-src 'self' ${config.website} https://eonovastudios.com; base-uri ${config.website}; frame-ancestors 'self'`);
+        res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(html);return;
+      }
       if (path === '/api/bootstrap' && req.method === 'GET') {
         const [profile, texts, media, rights] = await Promise.all([
           cms('/users/me?fields=id,email,first_name,last_name', s.access),
@@ -165,20 +178,22 @@ export function createStudioServer(options = {}) {
       }
       const mediaId = path.match(/^\/api\/media\/([a-f\d-]{36})$/i)?.[1];
       if ((path === '/api/media' && req.method === 'POST') || (mediaId && uuid.test(mediaId) && req.method === 'PATCH')) {
-        const input = await jsonBody(req); validate(input, ['placement', 'image', 'status', 'alt_es', 'alt_en', 'alt_fr']);
+        const input = await jsonBody(req); validate(input, ['placement', 'image', 'status', 'alt_es', 'alt_en', 'alt_fr', 'position', 'fit']);
         if ((input.placement !== undefined && !placements.includes(input.placement)) || (input.image !== undefined && !uuid.test(input.image))) throw new ApiError(400, 'Elige una ubicación y una imagen válidas.');
+        if (input.position !== undefined && !/^(100|[0-9]{1,2})% (100|[0-9]{1,2})%$/.test(input.position)) throw new ApiError(400, 'Elige un encuadre válido.');
+        if (input.fit !== undefined && !['cover', 'contain'].includes(input.fit)) throw new ApiError(400, 'Elige un ajuste válido.');
         const previous = mediaId ? await cms(`/items/section_media/${mediaId}?fields=${mediaFields}`, s.access) : {};
         const effective = { status: 'draft', ...previous, ...input };
         if (!effective.placement || !effective.image || locales.some(lang => !effective[`alt_${lang}`]?.trim() || effective[`alt_${lang}`].length > 2000)) throw new ApiError(400, 'Agrega una imagen y su descripción en los tres idiomas.');
         const fileId = typeof effective.image === 'string' ? effective.image : effective.image.id;
         const file = await cms(`/files/${fileId}?fields=id,type,filesize`, s.access);
-        if (!['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif'].includes(file.type) || Number(file.filesize) > 25 * 1024 * 1024) throw new ApiError(400, 'Elige una imagen JPG, PNG, WebP, AVIF o GIF de máximo 25 MB.');
+        if (!mediaTypes.includes(file.type) || Number(file.filesize) > (file.type.startsWith('video/') ? 100 : 25) * 1024 * 1024 || (effective.placement === 'logo' && !imageTypes.includes(file.type))) throw new ApiError(400, 'El logo requiere una imagen. Máximo: imágenes 25 MB, videos MP4/WebM 100 MB.');
         return send(res, await write(() => cms(`/items/section_media${mediaId ? '/' + mediaId : ''}?fields=${mediaFields}`, s.access, mediaId ? 'PATCH' : 'POST', mediaId ? input : { id: randomUUID(), status: 'draft', ...input })), mediaId ? 200 : 201);
       }
       if (path === '/api/upload' && req.method === 'POST') {
         const type = req.headers['content-type'];
-        if (!['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif'].includes(type)) throw new ApiError(415, 'Este formato de imagen no es compatible.');
-        const bytes = await body(req, 25 * 1024 * 1024);
+        if (!mediaTypes.includes(type)) throw new ApiError(415, 'Usa JPG, PNG, WebP, AVIF, GIF, MP4 o WebM.');
+        const bytes = await body(req, (type.startsWith('video/') ? 100 : 25) * 1024 * 1024);
         if (!bytes.length) throw new ApiError(400, 'El archivo está vacío.');
         const name = decodeURIComponent(String(req.headers['x-file-name'] || 'image')).replace(/[^\p{L}\p{N}._ -]/gu, '_').slice(0, 160);
         const form = new FormData(); form.set('title', name);
@@ -190,14 +205,20 @@ export function createStudioServer(options = {}) {
         const file = await cms('/files', s.access, 'POST', form);
         return send(res, { id: file.id, name: file.filename_download, type: file.type }, 201);
       }
+      if (path === '/api/library' && req.method === 'GET') {
+        const folders = await cms('/folders?fields=id,name&limit=-1', s.access);
+        const folder = folders.find(item => item.name === 'EON NOVA · Médias du site');
+        if (!folder) return send(res, []);
+        return send(res, await cms(`/files?filter[folder][_eq]=${folder.id}&fields=id,title,type,filename_download,filesize,width,height&sort=-uploaded_on&limit=100`, s.access));
+      }
       const imageId = path.match(/^\/api\/image\/([a-f\d-]{36})$/i)?.[1];
       if (imageId && uuid.test(imageId) && req.method === 'GET') {
         const file = await cms(`/files/${imageId}?fields=type`, s.access);
-        if (!['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif'].includes(file.type)) throw new ApiError(415, 'No se puede mostrar este archivo.');
-        const response = await config.fetcher(new URL(`/assets/${imageId}`, config.cms), { headers: { Authorization: `Bearer ${s.access}` }, redirect: 'error', signal: AbortSignal.timeout(60000) });
+        if (!mediaTypes.includes(file.type)) throw new ApiError(415, 'No se puede mostrar este archivo.');
+        const response = await config.fetcher(new URL(`/assets/${imageId}`, config.cms), { headers: { Authorization: `Bearer ${s.access}`, ...(req.headers.range ? {Range:req.headers.range} : {}) }, redirect: 'error', signal: AbortSignal.timeout(60000) });
         if (!response.ok) throw new ApiError(502, 'La imagen no está disponible.');
-        res.writeHead(200, { 'Content-Type': file.type, 'Cache-Control': 'private, max-age=60', 'Content-Disposition': 'inline' });
-        for await (const chunk of response.body) { if (res.destroyed) break; res.write(chunk); } res.end(); return;
+        res.writeHead(response.status, { 'Content-Type': file.type, 'Cache-Control': 'private, max-age=60', 'Content-Disposition': 'inline', ...Object.fromEntries(['content-length','content-range','accept-ranges'].filter(key => response.headers.has(key)).map(key => [key,response.headers.get(key)])) });
+        const stream=Readable.fromWeb(response.body);stream.on('error',()=>res.destroy());res.on('close',()=>stream.destroy());stream.pipe(res); return;
       }
       if (path === '/api/publish' && req.method === 'POST') {
         if (!config.publishEnabled || !config.publishSecret) throw new ApiError(409, 'El botón está preparado. La publicación se conectará más adelante. Tu contenido está guardado.');
@@ -210,7 +231,7 @@ export function createStudioServer(options = {}) {
       throw new ApiError(404, 'Esta acción no existe.');
     }
     if (req.method !== 'GET' && req.method !== 'HEAD') throw new ApiError(405, 'Método no permitido.');
-    const files = { '/': ['index.html', 'text/html; charset=utf-8'], '/app.js': ['app.js', 'text/javascript; charset=utf-8'], '/workspace-ui.js':['workspace-ui.js','text/javascript; charset=utf-8'], '/social-callback.html':['social-callback.html','text/html; charset=utf-8'], '/social-callback.js':['social-callback.js','text/javascript; charset=utf-8'], '/style.css': ['style.css', 'text/css; charset=utf-8'], '/favicon.svg': ['favicon.svg', 'image/svg+xml'], '/dm-sans.woff2': ['dm-sans.woff2', 'font/woff2'], '/space-grotesk.woff2': ['space-grotesk.woff2', 'font/woff2'] };
+    const files = { '/': ['index.html', 'text/html; charset=utf-8'], '/visual-page.js': ['visual-page.js', 'text/javascript; charset=utf-8'], '/editor.js': ['editor.js', 'text/javascript; charset=utf-8'], '/app.js': ['app.js', 'text/javascript; charset=utf-8'], '/workspace-ui.js':['workspace-ui.js','text/javascript; charset=utf-8'], '/social-callback.html':['social-callback.html','text/html; charset=utf-8'], '/social-callback.js':['social-callback.js','text/javascript; charset=utf-8'], '/style.css': ['style.css', 'text/css; charset=utf-8'], '/favicon.svg': ['favicon.svg', 'image/svg+xml'], '/dm-sans.woff2': ['dm-sans.woff2', 'font/woff2'], '/space-grotesk.woff2': ['space-grotesk.woff2', 'font/woff2'] };
     if(path==='/social-callback.html')res.setHeader('Referrer-Policy','no-referrer');
     if (!files[path]) throw new ApiError(404, 'Página no encontrada.');
     const [file, mime] = files[path];

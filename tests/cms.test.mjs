@@ -43,3 +43,34 @@ test('publishing requires its server secret and creates only the fixed EON produ
     for (const [key,value] of [['CMS_PUBLISH_SECRET',saved.secret],['VERCEL_DEPLOY_TOKEN',saved.token]]) {if(value===undefined) delete process.env[key];else process.env[key]=value;}
   }
 });
+
+test('CMS publishes private video assets and logo framing, rejects invalid types and duplicate placements', async t => {
+  const {mkdtemp,rm,readFile}=await import('node:fs/promises');
+  const {tmpdir}=await import('node:os');const {join}=await import('node:path');const {pathToFileURL}=await import('node:url');
+  const folder=await mkdtemp(join(tmpdir(),'eon-cms-'));t.after(()=>rm(folder,{recursive:true,force:true}));
+  let media=[{placement:'studio',image:{id:'video-file',type:'video/mp4'},alt_es:'Video',alt_en:'Video',alt_fr:'Vidéo',position:'25% 75%',fit:'contain'}];
+  const bytes=Buffer.from('video-fixture');
+  const fetcher=async(url,options)=>{
+    assert.equal(options.headers.Authorization,'Bearer private');
+    const path=new URL(url).pathname;
+    if(path==='/items/site_texts')return Response.json({data:[{source:'Hola',es:'Hola',en:'Hello',fr:'Bonjour'}]});
+    if(path==='/items/section_media')return Response.json({data:media});
+    return new Response(bytes);
+  };
+  const options={url:'https://cms.example',token:'private',fetcher,output:pathToFileURL(folder+'/')};
+  const loaded=await loadCms(options);
+  assert.equal(loaded.media.studio.type,'video/mp4');assert.equal(loaded.media.studio.position,'25% 75%');assert.equal(loaded.media.studio.fit,'contain');
+  assert.match(loaded.media.studio.src,/^\/_cms\/[a-f\d]+\.mp4$/);
+  assert.deepEqual(await readFile(join(folder,loaded.media.studio.src.split('/').at(-1))),bytes);
+  media=[{...media[0],placement:'logo'}];await assert.rejects(loadCms(options),/logo/);
+  media=[{...media[0],image:{id:'logo',type:'image/png'},position:'101% 0%'}];await assert.rejects(loadCms(options),/position/);
+  media=[{...media[0],position:'50% 50%',fit:'contain'}];assert.equal((await loadCms(options)).media.logo.type,'image/png');
+  media.push(media[0]);await assert.rejects(loadCms(options),/duplicate/);
+});
+
+test('CMS annotations keep edited text identifiable across publication without changing attributes or scripts',()=>{
+ const row={source:'Hola <em>mundo</em>',es:'Nuevo <strong>mundo</strong>',en:'Hello',fr:'Bonjour'};
+ const output=applyCopy('<h1>Hola <em>mundo</em></h1>',[row],'es',{}, {annotate:true});
+ assert.match(output,/data-eon-source="Hola &lt;em&gt;mundo&lt;\/em&gt;"/);
+ assert.match(output,/>Nuevo <strong>mundo<\/strong><\/h1>/);
+});

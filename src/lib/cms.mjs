@@ -12,17 +12,19 @@ export const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({ '&'
 const canonical = html => serialize(parseFragment(html));
 
 // Match complete text/inline fragments, never attributes, JavaScript or CSS.
-export function applyCopy(html, rows, lang, dictionary) {
+export function applyCopy(html, rows, lang, dictionary, {annotate = false} = {}) {
   const replacements = new Map(rows.map(row => [
     canonical(lang === 'es' ? row.source : (dictionary[row.source]?.[lang] ?? row.source)),
     cleanCopy(row[lang]),
   ]));
+  const sources = new Map(rows.map(row => [canonical(lang === 'es' ? row.source : (dictionary[row.source]?.[lang] ?? row.source)), row.source]));
   const tree = parseFragment(html);
   function visit(node) {
     if (['script', 'style', 'textarea', 'code'].includes(node.tagName)) return;
     if (node.childNodes?.length) {
       const match = replacements.get(serialize(node));
       if (match !== undefined) {
+        if (annotate && node.tagName) node.attrs.push({name: 'data-eon-source',value:sources.get(serialize(node))});
         node.childNodes = parseFragment(match).childNodes;
         for (const child of node.childNodes) child.parentNode = node;
         return;
@@ -67,7 +69,7 @@ export async function loadCms({ url, token, fetcher = fetch, output = pathToFile
   }
   const [copy, images] = await Promise.all([
     api('/items/site_texts?filter[status][_eq]=published&fields=source,es,en,fr&limit=-1&sort=sort'),
-    api('/items/section_media?filter[status][_eq]=published&fields=placement,image.id,image.type,image.modified_on,image.uploaded_on,alt_es,alt_en,alt_fr&limit=-1'),
+    api('/items/section_media?filter[status][_eq]=published&fields=placement,image.id,image.type,image.modified_on,image.uploaded_on,alt_es,alt_en,alt_fr,position,fit&limit=-1'),
   ]);
   if (!Array.isArray(copy.data) || !copy.data.length || !Array.isArray(images.data)) throw new Error('CMS content is missing.');
   const rows = validateRows(copy.data);
@@ -75,17 +77,19 @@ export async function loadCms({ url, token, fetcher = fetch, output = pathToFile
   await mkdir(output, { recursive: true });
   const media = {};
   for (const row of images.data) {
-    if (!['hero', 'studio', 'graphic', 'digital'].includes(row.placement) || media[row.placement]) throw new Error('Invalid or duplicate media placement.');
+    if (!['hero', 'studio', 'graphic', 'digital', 'logo'].includes(row.placement) || media[row.placement]) throw new Error('Invalid or duplicate media placement.');
     if (!row.image?.id || !['es', 'en', 'fr'].every(lang => row[`alt_${lang}`]?.trim())) throw new Error('Published media requires an image and three alternative texts.');
-    const extension = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/avif': 'avif', 'image/gif': 'gif' }[row.image.type];
-    if (!extension) throw new Error('Use JPG, PNG, WebP, AVIF or GIF for website images.');
+    const extension = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/avif': 'avif', 'image/gif': 'gif', 'video/mp4': 'mp4', 'video/webm': 'webm' }[row.image.type];
+    if (!extension || (row.placement === 'logo' && row.image.type.startsWith('video/'))) throw new Error('Use an image for the logo and JPG, PNG, WebP, AVIF, GIF, MP4 or WebM for media.');
+    if (row.position && !/^(100|[0-9]{1,2})% (100|[0-9]{1,2})%$/.test(row.position)) throw new Error('Invalid media position.');
+    if (row.fit && !['cover', 'contain'].includes(row.fit)) throw new Error('Invalid media fit.');
     const response = await fetcher(new URL(`/assets/${encodeURIComponent(row.image.id)}`, base), { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(60000) });
     if (!response.ok) throw new Error(`CMS image unavailable (${response.status}).`);
     const bytes = Buffer.from(await response.arrayBuffer());
-    if (bytes.length > 25 * 1024 * 1024 || !bytes.length) throw new Error('Website images must be between 1 byte and 25 MB.');
+    if (bytes.length > (row.image.type.startsWith('video/') ? 100 : 25) * 1024 * 1024 || !bytes.length) throw new Error('Website media exceeds its size limit (images: 25 MB, videos: 100 MB).');
     const name = `${createHash('sha256').update(bytes).digest('hex').slice(0, 24)}.${extension}`;
     await writeFile(new URL(name, output), bytes);
-    media[row.placement] = { src: `/_cms/${name}`, alt: { es: row.alt_es, en: row.alt_en, fr: row.alt_fr } };
+    media[row.placement] = { type: row.image.type, position: row.position || '50% 50%', fit: row.fit || 'cover', src: `/_cms/${name}`, alt: { es: row.alt_es, en: row.alt_en, fr: row.alt_fr } };
   }
   return { rows, media };
 }

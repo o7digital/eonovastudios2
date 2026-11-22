@@ -1,0 +1,9 @@
+---
+import {getCms} from '../lib/cms.mjs';
+import {home} from '../i18n';
+const {lang = 'es'} = Astro.props;
+const {media} = await getCms();
+---
+<a class="brand" href={home(lang) + '#inicio'} aria-label="EON NOVA Studios">
+  {media.logo ? <img class="brand-logo" src={media.logo.src} alt={media.logo.alt[lang]} width="180" height="56"/> : <><span class="brand-icon">✳</span><span>EON NOVA<small>STUDIOS</small></span></>}
+</a>
