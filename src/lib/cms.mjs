@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { parseFragment, serialize } from 'parse5';
 import sanitizeHtml from 'sanitize-html';
 import {prepareImage} from './images.mjs';
+import {mediaAlt} from '../../cms/studio/public/media-copy.js';
 
 export const cleanCopy = value => sanitizeHtml(String(value), {
   allowedTags: ['br', 'em', 'strong', 'span'], allowedAttributes: {},
@@ -79,7 +80,7 @@ export async function loadCms({ url, token, fetcher = fetch, output = pathToFile
   const media = {};
   for (const row of images.data) {
     if (!['hero', 'studio', 'graphic', 'digital', 'logo'].includes(row.placement) || media[row.placement]) throw new Error('Invalid or duplicate media placement.');
-    if (!row.image?.id || !['es', 'en', 'fr'].every(lang => row[`alt_${lang}`]?.trim())) throw new Error('Published media requires an image and three alternative texts.');
+    if (!row.image?.id) throw new Error('Published media requires an image.');
     const extension = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/avif': 'avif', 'image/gif': 'gif', 'video/mp4': 'mp4', 'video/webm': 'webm' }[row.image.type];
     if (!extension || (row.placement === 'logo' && row.image.type.startsWith('video/'))) throw new Error('Use an image for the logo and JPG, PNG, WebP, AVIF, GIF, MP4 or WebM for media.');
     if (row.position && !/^(100|[0-9]{1,2})% (100|[0-9]{1,2})%$/.test(row.position)) throw new Error('Invalid media position.');
@@ -95,7 +96,7 @@ export async function loadCms({ url, token, fetcher = fetch, output = pathToFile
       const name = `${createHash('sha256').update(bytes).digest('hex').slice(0, 24)}.${extension}`;
       await writeFile(new URL(name, output), bytes);asset={type:row.image.type,src:`/_cms/${name}`};
     }
-    media[row.placement] = { ...asset, ...(row.placement === 'logo' ? {size:row.logo_size ?? 80} : {}), position: row.position || '50% 50%', fit: row.fit || 'cover', alt: { es: row.alt_es, en: row.alt_en, fr: row.alt_fr } };
+    media[row.placement] = { ...asset, ...(row.placement === 'logo' ? {size:row.logo_size ?? 80} : {}), position: row.position || '50% 50%', fit: row.fit || 'cover', alt: Object.fromEntries(['es','en','fr'].map(lang=>[lang,mediaAlt(row.placement,lang,row[`alt_${lang}`])])) };
   }
   return { rows, media };
 }

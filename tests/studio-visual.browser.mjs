@@ -16,7 +16,9 @@ async function fixture(t, {readonly = false,logo = false} = {}) {
   const rows = [{id:'12345678-1234-4123-a123-123456789012',label:'Título de inicio',section:'hero',source:'Las ideas<br>no se quedan<br><em>quietas.</em>',es:'Las ideas<br>no se quedan<br><em>quietas.</em>',en:'Ideas<br>keep <em>moving.</em>',fr:'Les idées<br>restent en <em>mouvement.</em>',status:'published',sort:0}];
   const media={id:'12345678-1234-4123-a123-123456789013',placement:'logo',image:{id:'12345678-1234-4123-a123-123456789014',type:'image/png'},alt_es:'Logo',alt_en:'Logo',alt_fr:'Logo',status:'published',logo_size:80};
   const png=await sharp(Buffer.from('<svg width="800" height="600"><circle cx="400" cy="300" r="100" fill="white"/></svg>')).png().toBuffer();
-  let publications = 0;
+  const mediaRows=new Map(logo?[[media.id,media]]:[]),files=new Map([[media.image.id,{bytes:png,type:'image/png',name:'logo.png'}]]);
+  let publications=0,failNextMediaSave=false;
+  const uploadedId='12345678-1234-4123-a123-123456789015';
   const server = createStudioServer({
     cms:'https://cms.example',origin:base,secret:'a-test-secret-with-at-least-32-characters',secure:false,
     publishEnabled:true,publishSecret:'private-test-publish-secret',
@@ -33,10 +35,24 @@ async function fixture(t, {readonly = false,logo = false} = {}) {
         }
         return result(rows);
       }
-      if (path === '/items/section_media') return result(logo?[media]:[]);
-      if (path === '/items/section_media/'+media.id) {if(options.method==='PATCH'){const {image,...fields}=JSON.parse(options.body);Object.assign(media,fields);}return result(media);}
-      if (path === '/files/'+media.image.id) return result({type:'image/png',filesize:png.length});
-      if (path === '/assets/'+media.image.id) return new Response(png,{headers:{'Content-Type':'image/png'}});
+      if(path==='/folders')return result([]);
+      if(path==='/files'&&options.method==='POST'){
+        const file=options.body.get('file');files.set(uploadedId,{bytes:Buffer.from(await file.arrayBuffer()),type:file.type,name:file.name});
+        return result({id:uploadedId,type:file.type,filename_download:file.name});
+      }
+      if(path.startsWith('/files/')){const file=files.get(path.split('/').at(-1));return result({type:file.type,filesize:file.bytes.length});}
+      if(path.startsWith('/assets/')){const file=files.get(path.split('/').at(-1));return new Response(file.bytes,{headers:{'Content-Type':file.type}});}
+      if(path.startsWith('/items/section_media')){
+        if(options.method==='POST'||options.method==='PATCH'){
+          if(readonly)return new Response(null,{status:403});
+          if(failNextMediaSave){failNextMediaSave=false;return new Response(null,{status:503});}
+          const {image,...input}=JSON.parse(options.body),id=path.split('/').at(-1)==='section_media'?input.id:path.split('/').at(-1);
+          const row=mediaRows.get(id)||{id};Object.assign(row,input);
+          if(image){const file=files.get(image);row.image={id:image,type:file.type,filename_download:file.name};}
+          mediaRows.set(id,row);return result(row);
+        }
+        return result([...mediaRows.values()]);
+      }
       if (path === '/api/cms-publish') {publications++;return Response.json({id:'test-deployment'},{status:202});}
       if (['/','/en/','/fr/'].includes(path)) {
         return new Response(`<!doctype html><html><head><style>${css}${logoCss}</style></head><body><header class="nav"><a class="brand">Logo</a></header><main><section class="hero" id="inicio"><div class="hero-art hero-motion"><canvas></canvas></div><div class="hero-copy"><h1 data-eon-source="Las ideas&lt;br&gt;no se quedan&lt;br&gt;&lt;em&gt;quietas.&lt;/em&gt;">${rows[0].es}</h1></div></section></main></body></html>`);
@@ -52,15 +68,15 @@ async function fixture(t, {readonly = false,logo = false} = {}) {
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
   await page.context().request.post(base+'/api/login',{headers:{Origin:base},data:{email:'owner@example.com',password:'test-password'}});
   await page.goto(base+'/#visual');
-  await page.locator('.visual-page-status').filter({hasText:'textos editables'}).waitFor();
-  return {page,rows,media,errors,publications:()=>publications};
+  await page.locator('.visual-page-status[data-visual-ready]').waitFor();
+  return {page,rows,media,mediaRows,errors,publications:()=>publications,failMediaSave:()=>{failNextMediaSave=true;}};
 }
 
 test('Firefox: the actual site CSS permits clicking, editing, saving and reloading the hero in all three languages',async t=>{
   const {page,rows,errors,publications}=await fixture(t);
   for (const [lang,text] of [['es','Edición en español'],['en','Edited in English'],['fr','Modification en français']]) {
     await page.locator(`[data-language="${lang}"]`).click();
-    await page.locator('.visual-page-status').filter({hasText:'textos editables'}).waitFor();
+    await page.locator('.visual-page-status[data-visual-ready]').waitFor();
     if (lang === 'fr') await page.locator('[data-device="390"]').click();
     const title = page.frameLocator('iframe').locator('h1');
     // A real click reproduces the original pointer-events failure; force/fill would hide it.
@@ -78,13 +94,17 @@ test('Firefox: the actual site CSS permits clicking, editing, saving and reloadi
     assert.equal(rows[0][lang],text);
     await page.reload();
     await page.locator(`[data-language="${lang}"]`).click();
-    await page.locator('.visual-page-status').filter({hasText:'textos editables'}).waitFor();
+    await page.locator('.visual-page-status[data-visual-ready]').waitFor();
     assert.equal(await page.frameLocator('iframe').locator('h1').textContent(),text);
   }
   await page.locator('[data-device="1440"]').click();
   await page.frameLocator('iframe').locator('[data-eon-placement="hero"]').click({position:{x:700,y:200}});
-  await page.locator('#media-dialog[open]').waitFor();
+  await page.locator('.visual-inspector [data-upload-visual]').waitFor();
+  assert.equal(await page.locator('#media-dialog').isVisible(),false);
+  await page.locator('[data-media-options]').click();await page.locator('#media-dialog[open]').waitFor();
   assert.equal(await page.locator('#media-placement').inputValue(),'hero');
+  assert.equal(await page.locator('#media-options').getAttribute('open'),null);
+  assert.equal(await page.locator('#alt-es').getAttribute('required'),null);
   await page.locator('#cancel-media').click();
   await page.locator('[data-publish]').click();
   await page.locator('#confirm-yes').click();
@@ -106,19 +126,101 @@ test('Firefox: logo padding is removed and the size control survives saving and 
   const image=page.frameLocator('iframe').locator('header .brand-logo');
   assert.equal(await image.evaluate(e=>e.getBoundingClientRect().height),80);
   assert.equal(await image.evaluate(e=>e.naturalWidth),200);
-  await image.click();await page.locator('#media-dialog[open]').waitFor();
-  assert.equal(await page.locator('#media-framing').isHidden(),true);
-  await page.locator('#logo-size').fill('120');
-  await page.locator('#logo-size').dispatchEvent('input');
-  assert.equal(await page.locator('#media-preview').evaluate(e=>e.getBoundingClientRect().height),120);
+  await image.click();
+  assert.equal(await page.locator('#media-dialog').isVisible(),false);
+  await page.locator('[data-logo-size]').fill('120');
+  assert.equal(await page.frameLocator('iframe').locator('header .brand-logo').evaluate(e=>e.getBoundingClientRect().height),120);
+  assert.equal(media.logo_size,80);
   const saved=page.waitForResponse(r=>r.url().includes('/api/media/')&&r.request().method()==='PATCH');
-  await page.locator('#save-media').click();assert.equal((await saved).status(),200);
-  await page.locator('.visual-page-status').filter({hasText:'textos editables'}).waitFor();
+  await page.locator('[data-visual-save]').click();assert.equal((await saved).status(),200);
+  await page.locator('.visual-page-status[data-visual-ready]').waitFor();
   assert.equal(media.logo_size,120);
   assert.equal(await page.frameLocator('iframe').locator('header .brand-logo').evaluate(e=>e.getBoundingClientRect().height),120);
-  await page.reload();await page.locator('.visual-page-status').filter({hasText:'textos editables'}).waitFor();
+  await page.reload();await page.locator('.visual-page-status[data-visual-ready]').waitFor();
   assert.equal(await page.frameLocator('iframe').locator('header .brand-logo').evaluate(e=>e.getBoundingClientRect().height),120);
   await page.locator('[data-device="390"]').click();
   assert.equal(await page.frameLocator('iframe').locator('header .brand-logo').evaluate(e=>e.getBoundingClientRect().height),84);
+  assert.deepEqual(errors,[]);
+});
+
+async function selectHero(page){
+  await page.frameLocator('iframe').locator('[data-eon-placement="hero"]').click({position:{x:700,y:200}});
+  await page.locator('.visual-inspector [data-upload-visual]').waitFor();
+}
+async function choosePhoto(page){
+  const png=await sharp({create:{width:64,height:48,channels:3,background:'#a6ed74'}}).png().toBuffer();
+  const uploaded=page.waitForResponse(r=>r.url().endsWith('/api/upload')&&r.request().method()==='POST');
+  await page.locator('.visual-upload').setInputFiles({name:'mi-foto.png',mimeType:'image/png',buffer:png});
+  assert.equal((await uploaded).status(),201);
+  await page.frameLocator('iframe').locator('.hero-art img').waitFor();
+  await page.locator('[data-visual-save]:enabled').waitFor();
+}
+
+test('Firefox: select a photo, upload, preview and save without descriptions; retain the draft across languages and publish',async t=>{
+  const {page,mediaRows,errors,publications}=await fixture(t);
+  await selectHero(page);await choosePhoto(page);
+  assert.equal(await page.locator('#media-dialog').isVisible(),false);
+  assert.equal(mediaRows.size,0);
+  assert.equal(await page.locator('[data-publish]').isDisabled(),true);
+  await page.locator('[data-language="en"]').click();
+  await page.locator('.visual-page-status[data-visual-ready]').waitFor();
+  assert.equal(await page.frameLocator('iframe').locator('.hero-art img').count(),1);
+  const saved=page.waitForResponse(r=>r.url().endsWith('/api/media')&&r.request().method()==='POST');
+  await page.locator('[data-visual-save]').click();assert.equal((await saved).status(),201);
+  await page.locator('.visual-page-status[data-visual-ready]').waitFor();
+  assert.equal(mediaRows.size,1);
+  const row=[...mediaRows.values()][0];assert.equal(row.placement,'hero');
+  for(const lang of ['es','en','fr'])assert.ok(row['alt_'+lang]?.trim());
+  await page.reload();await page.locator('.visual-page-status[data-visual-ready]').waitFor();
+  assert.equal(await page.frameLocator('iframe').locator('.hero-art img').count(),1);
+  await page.locator('[data-visual-mode="preview"]').click();
+  assert.equal(await page.frameLocator('iframe').locator('h1').getAttribute('contenteditable'),'false');
+  assert.equal(await page.locator('.visual-inspector').isHidden(),true);
+  await page.locator('[data-visual-mode="edit"]').click();
+  await page.locator('[data-visual-expand]').click();assert.equal(await page.locator('.visual-expanded').count(),1);
+  await page.locator('[data-visual-expand]').click();
+  await page.locator('[data-publish]').click();await page.locator('#confirm-yes').click();
+  await page.locator('#toast').filter({hasText:'Publicación solicitada'}).waitFor();assert.equal(publications(),1);
+  await page.locator('#main-nav a[href="#hero"]').click();await page.locator('.visual-page-status[data-visual-ready]').waitFor();
+  assert.equal(await page.locator('.studio-text-fields').getAttribute('open'),null);
+  assert.equal(await page.frameLocator('iframe').locator('h1').getAttribute('contenteditable'),'true');
+  assert.deepEqual(errors,[]);
+});
+
+test('Firefox: discard an uploaded photo before saving and recover a pending photo after an upstream save error',async t=>{
+  const {page,mediaRows,errors,failMediaSave}=await fixture(t);
+  await selectHero(page);await choosePhoto(page);
+  await page.locator('[data-revert]').click();await page.locator('#confirm-yes').click();
+  await page.locator('.visual-page-status[data-visual-ready]').waitFor();
+  assert.equal(mediaRows.size,0);assert.equal(await page.frameLocator('iframe').locator('.hero-art img').count(),0);
+  await selectHero(page);await choosePhoto(page);failMediaSave();
+  let saved=page.waitForResponse(r=>r.url().endsWith('/api/media')&&r.request().method()==='POST');
+  await page.locator('[data-visual-save]').click();assert.equal((await saved).status(),502);
+  await page.locator('.visual-page-status[data-visual-ready]').waitFor();
+  assert.equal(await page.frameLocator('iframe').locator('.hero-art img').count(),1);
+  assert.equal(await page.locator('[data-visual-save]').isEnabled(),true);
+  assert.equal(await page.locator('[data-publish]').isDisabled(),true);
+  saved=page.waitForResponse(r=>r.url().endsWith('/api/media')&&r.request().method()==='POST');
+  await page.locator('[data-visual-save]').click();assert.equal((await saved).status(),201);
+  await page.locator('.visual-page-status[data-visual-ready]').waitFor();assert.equal(mediaRows.size,1);
+  assert.deepEqual(errors,[]);
+});
+
+test('Firefox: the optional media form saves a new file with all description fields empty and gives a Spanish error for a missing file',async t=>{
+  const {page,mediaRows,errors}=await fixture(t);
+  await selectHero(page);await page.locator('[data-media-options]').click();
+  await page.locator('#media-dialog[open]').waitFor();
+  assert.equal(await page.locator('#media-options').getAttribute('open'),null);
+  for(const lang of ['es','en','fr']){
+    assert.equal(await page.locator('#alt-'+lang).inputValue(),'');
+    assert.equal(await page.locator('#alt-'+lang).getAttribute('required'),null);
+  }
+  await page.locator('#save-media').click();assert.match(await page.locator('#media-error').textContent(),/Elige una foto/);
+  const png=await sharp({create:{width:64,height:48,channels:3,background:'#a6ed74'}}).png().toBuffer();
+  await page.locator('#media-file').setInputFiles({name:'mi-foto.png',mimeType:'image/png',buffer:png});
+  const saved=page.waitForResponse(r=>r.url().endsWith('/api/media')&&r.request().method()==='POST');
+  await page.locator('#save-media').click();assert.equal((await saved).status(),201);
+  await page.locator('#media-dialog').waitFor({state:'hidden'});assert.equal(mediaRows.size,1);
+  const row=[...mediaRows.values()][0];for(const lang of ['es','en','fr'])assert.ok(row['alt_'+lang]);
   assert.deepEqual(errors,[]);
 });

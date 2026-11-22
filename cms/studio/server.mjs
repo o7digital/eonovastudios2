@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import {createWorkspace,WorkspaceError} from './workspace.mjs';
 import {createSocialMedia,SocialMediaError} from './social-media.mjs';
+import {mediaAlt} from './public/media-copy.js';
 
 const uuid = /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i;
 const locales = ['es', 'en', 'fr'];
@@ -214,7 +215,9 @@ export function createStudioServer(options = {}) {
         if (input.fit !== undefined && !['cover', 'contain'].includes(input.fit)) throw new ApiError(400, 'Elige un ajuste válido.');
         const previous = mediaId ? await cms(`/items/section_media/${mediaId}?fields=${mediaFields}`, s.access) : {};
         const effective = { status: 'draft', ...previous, ...input };
-        if (!effective.placement || !effective.image || locales.some(lang => !effective[`alt_${lang}`]?.trim() || effective[`alt_${lang}`].length > 2000)) throw new ApiError(400, 'Agrega una imagen y su descripción en los tres idiomas.');
+        if (!effective.placement || !effective.image) throw new ApiError(400, 'Elige una foto o un video.');
+        if (locales.some(lang => effective[`alt_${lang}`]?.length > 2000)) throw new ApiError(400, 'La descripción admite hasta 2 000 caracteres.');
+        for (const lang of locales) input[`alt_${lang}`] = mediaAlt(effective.placement,lang,effective[`alt_${lang}`]);
         const fileId = typeof effective.image === 'string' ? effective.image : effective.image.id;
         const file = await cms(`/files/${fileId}?fields=id,type,filesize`, s.access);
         if (!mediaTypes.includes(file.type) || Number(file.filesize) > (file.type.startsWith('video/') ? 100 : 25) * 1024 * 1024 || (effective.placement === 'logo' && !imageTypes.includes(file.type))) throw new ApiError(400, 'El logo requiere una imagen. Máximo: imágenes 25 MB, videos MP4/WebM 100 MB.');
@@ -261,7 +264,7 @@ export function createStudioServer(options = {}) {
       throw new ApiError(404, 'Esta acción no existe.');
     }
     if (req.method !== 'GET' && req.method !== 'HEAD') throw new ApiError(405, 'Método no permitido.');
-    const files = { '/': ['index.html', 'text/html; charset=utf-8'], '/visual-page.js': ['visual-page.js', 'text/javascript; charset=utf-8'], '/editor.js': ['editor.js', 'text/javascript; charset=utf-8'], '/logo.js': ['logo.js', 'text/javascript; charset=utf-8'], '/app.js': ['app.js', 'text/javascript; charset=utf-8'], '/workspace-ui.js':['workspace-ui.js','text/javascript; charset=utf-8'], '/social-callback.html':['social-callback.html','text/html; charset=utf-8'], '/social-callback.js':['social-callback.js','text/javascript; charset=utf-8'], '/style.css': ['style.css', 'text/css; charset=utf-8'], '/favicon.svg': ['favicon.svg', 'image/svg+xml'], '/dm-sans.woff2': ['dm-sans.woff2', 'font/woff2'], '/space-grotesk.woff2': ['space-grotesk.woff2', 'font/woff2'] };
+    const files = { '/': ['index.html', 'text/html; charset=utf-8'], '/visual-page.js': ['visual-page.js', 'text/javascript; charset=utf-8'], '/editor.js': ['editor.js', 'text/javascript; charset=utf-8'], '/logo.js': ['logo.js', 'text/javascript; charset=utf-8'], '/media-copy.js': ['media-copy.js', 'text/javascript; charset=utf-8'], '/app.js': ['app.js', 'text/javascript; charset=utf-8'], '/workspace-ui.js':['workspace-ui.js','text/javascript; charset=utf-8'], '/social-callback.html':['social-callback.html','text/html; charset=utf-8'], '/social-callback.js':['social-callback.js','text/javascript; charset=utf-8'], '/style.css': ['style.css', 'text/css; charset=utf-8'], '/favicon.svg': ['favicon.svg', 'image/svg+xml'], '/dm-sans.woff2': ['dm-sans.woff2', 'font/woff2'], '/space-grotesk.woff2': ['space-grotesk.woff2', 'font/woff2'] };
     if(path==='/social-callback.html')res.setHeader('Referrer-Policy','no-referrer');
     if (!files[path]) throw new ApiError(404, 'Página no encontrada.');
     const [file, mime] = files[path];

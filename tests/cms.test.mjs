@@ -67,6 +67,9 @@ test('CMS publishes private video assets and logo framing, rejects invalid types
   media=[{...media[0],placement:'logo'}];await assert.rejects(loadCms(options),/logo/);
   media=[{...media[0],image:{id:'logo',type:'image/png'},position:'101% 0%'}];await assert.rejects(loadCms(options),/position/);
   media=[{...media[0],position:'50% 50%',fit:'contain'}];assert.equal((await loadCms(options)).media.logo.type,'image/webp');
+  media=[{...media[0],logo_size:120,alt_es:'',alt_en:null,alt_fr:undefined}];
+  const optionalDescriptions=await loadCms(options);assert.equal(optionalDescriptions.media.logo.size,120);
+  for(const lang of ['es','en','fr'])assert.equal(optionalDescriptions.media.logo.alt[lang],'EON NOVA Studios');
   media.push(media[0]);await assert.rejects(loadCms(options),/duplicate/);
 });
 

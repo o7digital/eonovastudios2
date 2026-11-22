@@ -22,7 +22,7 @@ async function fixture(t, options = {}) {
       }
       return result([row]);
     }
-    if(path==='/items/section_media')return result([]);
+    if(path==='/items/section_media')return result(request.method==='POST'?JSON.parse(request.body):[]);
     if(path==='/items/section_media/'+id)return result({id,placement:'logo',image:{id,type:'image/png'},alt_es:'Logo',alt_en:'Logo',alt_fr:'Logo',status:'published',...(request.method==='PATCH'?JSON.parse(request.body):{})});
     if(path==='/files/'+id)return result({id,type:'image/png',filesize:1000});
     if(path==='/folders')return result([]);
@@ -136,4 +136,18 @@ test('logo size is persisted as a bounded number and malformed sizes are rejecte
  for(const size of [39,121,80.5,'100',null])assert.equal((await save(size)).status,400);
  assert.equal(calls.filter(call=>call.method==='PATCH').length,0);
  for(const size of [40,80,120]){const response=await save(size);assert.equal(response.status,200);assert.equal((await response.json()).logo_size,size);}
+});
+
+test('media creation accepts omitted or empty descriptions and preserves specific descriptions when provided',async t=>{
+ const {request,login}=await fixture(t);const cookie=(await login()).headers.get('set-cookie').split(';')[0];
+ const create=input=>request('/api/media',{method:'POST',headers:{Cookie:cookie},body:JSON.stringify({placement:'hero',image:id,status:'published',...input})});
+ for(const input of [{},{alt_es:'',alt_en:' ',alt_fr:''}]){
+  const response=await create(input);assert.equal(response.status,201);
+  const media=await response.json();for(const lang of ['es','en','fr'])assert.ok(media['alt_'+lang].trim());
+ }
+ const specific=await create({alt_es:'Nuestro estudio en Ciudad de México',alt_en:'Our studio in Mexico City'});
+ assert.equal(specific.status,201);const media=await specific.json();
+ assert.equal(media.alt_es,'Nuestro estudio en Ciudad de México');assert.equal(media.alt_en,'Our studio in Mexico City');assert.ok(media.alt_fr);
+ assert.equal((await create({alt_es:'x'.repeat(2001)})).status,400);
+ assert.equal((await create({alt_en:{html:'invalid'}})).status,400);
 });
