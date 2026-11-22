@@ -1,0 +1,22 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from './Header.astro';
+import Footer from './Footer.astro';
+import Localized from './Localized.astro';
+import SiteMedia from './SiteMedia.astro';
+import JournalCards from './JournalCards.astro';
+import {getJournal} from '../lib/journal.mjs';
+import {cleanCopy} from '../lib/cms.mjs';
+import {journalDefinitions,journalText,journalPath,journalAlternates} from '../../cms/studio/public/journal-data.js';
+const {section,lang='es',entry,path}=Astro.props;
+const data=await getJournal(),definition=journalDefinitions.find(d=>d.id===section),title=entry?journalText(entry.title,lang):definition.labels[lang];
+const back={es:'Volver',en:'Back',fr:'Retour'}[lang],empty={es:'Nuevas publicaciones próximamente.',en:'New publications coming soon.',fr:'De nouvelles publications prochainement.'}[lang];
+---
+<Layout lang={lang} pageTitle={title} path={path} description={entry?journalText(entry.summary,lang):undefined}>
+ <Localized lang={lang}><Header lang={lang} languagePaths={journalAlternates(path).paths}/></Localized>
+ <main class="journal-public-page">
+  <div class="journal-public-page-heading"><a href={entry?journalPath(section,lang):lang==='es'?'/':'/'+lang+'/'}>← {back}{entry?' · '+definition.labels[lang]:''}</a><p class="eyebrow">EON NOVA · {definition.labels[lang]}</p><h1>{title}</h1>{entry&&journalText(entry.summary,lang)&&<p class="journal-lead">{journalText(entry.summary,lang)}</p>}</div>
+  {entry?<article class="journal-public-body">{entry.blocks.map(block=>block.kind==='text'?<div class="journal-prose" set:html={cleanCopy(journalText(block.text,lang))}/>:<figure><SiteMedia media={{...block.media,fit:'contain',alt:{es:journalText(block.caption,lang)||title,en:journalText(block.caption,lang)||title,fr:journalText(block.caption,lang)||title}}} lang={lang} class="journal-item-media"/>{journalText(block.caption,lang)&&<figcaption>{journalText(block.caption,lang)}</figcaption>}</figure>)}</article>:<section aria-label={title}><JournalCards lang={lang} entries={data.entries.filter(e=>e.section===section)}/>{!data.entries.some(e=>e.section===section)&&<p class="journal-empty">{empty}</p>}</section>}
+ </main>
+ <Localized lang={lang}><Footer lang={lang}/></Localized>
+</Layout>

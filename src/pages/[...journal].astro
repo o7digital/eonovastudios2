@@ -1,0 +1,6 @@
+---
+import JournalPage from '../components/JournalPage.astro';
+import {getJournal,journalRoutes} from '../lib/journal.mjs';
+export async function getStaticPaths(){return journalRoutes(await getJournal()).map(route=>({params:{journal:route.path.slice(1,-1)},props:route}));}
+---
+<JournalPage {...Astro.props}/>

@@ -1,0 +1,13 @@
+---
+import SiteMedia from './SiteMedia.astro';
+import {journalText,journalPath} from '../../cms/studio/public/journal-data.js';
+const {entries=[],lang='es'}=Astro.props;
+const read={es:'Ver publicación',en:'View publication',fr:'Voir la publication'}[lang];
+---
+<div class="journal-public-grid">{entries.map(entry=>{
+ const cover=entry.blocks.find(b=>b.media),title=journalText(entry.title,lang);
+ return <article class="journal-public-card">
+  {cover&&<div class="journal-card-media"><SiteMedia media={{...cover.media,fit:'contain',alt:{es:title,en:title,fr:title}}} lang={lang} class="journal-item-media"/></div>}
+  <div class="journal-card-copy">{entry.published_on&&<time datetime={entry.published_on}>{new Date(entry.published_on).toLocaleDateString(lang,{year:'numeric',month:'long',day:'numeric',timeZone:'America/Mexico_City'})}</time>}<h3><a href={journalPath(entry.section,lang,entry.slug)}>{title}</a></h3>{journalText(entry.summary,lang)&&<p>{journalText(entry.summary,lang)}</p>}<a class="journal-read" href={journalPath(entry.section,lang,entry.slug)}>{read} ↗</a></div>
+ </article>;
+})}</div>

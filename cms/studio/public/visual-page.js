@@ -113,6 +113,7 @@ export function mountVisualPage(root,{lang,rows,valueOf,onText,onMediaOptions,on
    style.textContent+='[data-eon-preview] video{pointer-events:auto}';
    targets.clear();count=0;
    function visit(node){
+    if(node.hasAttribute?.('data-journal'))return;
     if(!node.tagName||['SCRIPT','STYLE','SVG','CANVAS','HEAD','NOSCRIPT'].includes(node.tagName))return;
     const row=rows.find(row=>row.source===node.dataset.eonSource)||lookup.get(normalize(node.innerHTML));
     if(row&&node.textContent.trim()){

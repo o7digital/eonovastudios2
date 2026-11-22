@@ -7,6 +7,7 @@ import {createWorkspace,WorkspaceError} from './workspace.mjs';
 import {createSocialMedia,SocialMediaError} from './social-media.mjs';
 import {mediaAlt} from './public/media-copy.js';
 import {publishedLogoUrl} from './public/logo.js';
+import {createJournal,JournalError} from './journal.mjs';
 
 const uuid = /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i;
 const locales = ['es', 'en', 'fr'];
@@ -90,15 +91,16 @@ export function createStudioServer(options = {}) {
   }
   const socialMedia=createSocialMedia({cms:config.cms,editorToken:config.mediaReadToken,secret:config.secret,origin:config.origin,fetcher:config.fetcher});
   const workspace=createWorkspace({cms,crm:config.crm,tenant:config.tenant,serviceEmail:config.serviceEmail,servicePassword:config.servicePassword,ownerEmail:config.ownerEmail,origin:config.origin,fetcher:config.fetcher,socialMedia});
+  const journal=createJournal({cms,write});
   async function body(req, limit = 262144) {
     if (Number(req.headers['content-length']) > limit) throw new ApiError(413, 'El archivo supera el tamaño permitido.');
     let size = 0; const chunks = [];
     for await (const chunk of req) { size += chunk.length; if (size > limit) throw new ApiError(413, 'El contenido supera el tamaño permitido.'); chunks.push(chunk); }
     return Buffer.concat(chunks);
   }
-  async function jsonBody(req) {
+  async function jsonBody(req,limit=262144) {
     if (!req.headers['content-type']?.startsWith('application/json')) throw new ApiError(415, 'Formato de formulario no reconocido.');
-    try { const value = JSON.parse((await body(req)).toString()); if (!value || Array.isArray(value) || typeof value !== 'object') throw new Error(); return value; }
+    try { const value = JSON.parse((await body(req,limit)).toString()); if (!value || Array.isArray(value) || typeof value !== 'object') throw new Error(); return value; }
     catch (error) { if (error instanceof ApiError) throw error; throw new ApiError(400, 'El formulario no es válido.'); }
   }
   const send = (res, data, status = 200) => { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(data)); };
@@ -172,6 +174,7 @@ export function createStudioServer(options = {}) {
         return send(res,{ok:true,message:'Tu contraseña se actualizó. Ya puedes usar tu Studio.'});
       }
       if(await workspace.handle({path,url,req,res,s,jsonBody,send,body}))return;
+      if(await journal.handle({path,req,res,s,jsonBody,send}))return;
       if (path === '/api/preview' && req.method === 'GET') {
         const lang = url.searchParams.get('lang') || 'es';
         if (!locales.includes(lang)) throw new ApiError(400, 'Elige un idioma válido.');
@@ -271,7 +274,7 @@ export function createStudioServer(options = {}) {
       throw new ApiError(404, 'Esta acción no existe.');
     }
     if (req.method !== 'GET' && req.method !== 'HEAD') throw new ApiError(405, 'Método no permitido.');
-    const files = { '/text-color.js': ['text-color.js', 'text/javascript; charset=utf-8'], '/': ['index.html', 'text/html; charset=utf-8'], '/visual-page.js': ['visual-page.js', 'text/javascript; charset=utf-8'], '/editor.js': ['editor.js', 'text/javascript; charset=utf-8'], '/logo.js': ['logo.js', 'text/javascript; charset=utf-8'], '/media-copy.js': ['media-copy.js', 'text/javascript; charset=utf-8'], '/app.js': ['app.js', 'text/javascript; charset=utf-8'], '/workspace-ui.js':['workspace-ui.js','text/javascript; charset=utf-8'], '/social-callback.html':['social-callback.html','text/html; charset=utf-8'], '/social-callback.js':['social-callback.js','text/javascript; charset=utf-8'], '/style.css': ['style.css', 'text/css; charset=utf-8'], '/favicon.svg': ['favicon.svg', 'image/svg+xml'], '/dm-sans.woff2': ['dm-sans.woff2', 'font/woff2'], '/space-grotesk.woff2': ['space-grotesk.woff2', 'font/woff2'] };
+    const files = { '/journal-ui.js':['journal-ui.js','text/javascript; charset=utf-8'], '/journal-data.js':['journal-data.js','text/javascript; charset=utf-8'], '/text-color.js': ['text-color.js', 'text/javascript; charset=utf-8'], '/': ['index.html', 'text/html; charset=utf-8'], '/visual-page.js': ['visual-page.js', 'text/javascript; charset=utf-8'], '/editor.js': ['editor.js', 'text/javascript; charset=utf-8'], '/logo.js': ['logo.js', 'text/javascript; charset=utf-8'], '/media-copy.js': ['media-copy.js', 'text/javascript; charset=utf-8'], '/app.js': ['app.js', 'text/javascript; charset=utf-8'], '/workspace-ui.js':['workspace-ui.js','text/javascript; charset=utf-8'], '/social-callback.html':['social-callback.html','text/html; charset=utf-8'], '/social-callback.js':['social-callback.js','text/javascript; charset=utf-8'], '/style.css': ['style.css', 'text/css; charset=utf-8'], '/favicon.svg': ['favicon.svg', 'image/svg+xml'], '/dm-sans.woff2': ['dm-sans.woff2', 'font/woff2'], '/space-grotesk.woff2': ['space-grotesk.woff2', 'font/woff2'] };
     if(path==='/social-callback.html')res.setHeader('Referrer-Policy','no-referrer');
     if (!files[path]) throw new ApiError(404, 'Página no encontrada.');
     const [file, mime] = files[path];
@@ -280,7 +283,7 @@ export function createStudioServer(options = {}) {
   }
   return http.createServer((req, res) => serve(req, res).catch(error => {
     if (res.headersSent) { res.end(); return; }
-    const known=error instanceof ApiError||error instanceof WorkspaceError||error instanceof SocialMediaError;
+    const known=error instanceof ApiError||error instanceof WorkspaceError||error instanceof SocialMediaError||error instanceof JournalError;
     const status = known ? error.status : 500;
     if (status === 401) setSession(res, null);
     send(res, { error: known ? error.message : 'El Studio no pudo completar esta acción. Intenta de nuevo.' }, status);

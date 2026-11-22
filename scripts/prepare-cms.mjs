@@ -1,5 +1,6 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { loadCms } from '../src/lib/cms.mjs';
+import {loadJournal} from '../src/lib/journal.mjs';
 
 // Download before Astro copies public/. A failed preparation never starts a build.
 const url = process.env.DIRECTUS_URL || null;
@@ -8,4 +9,6 @@ if (!url) await rm('public/_cms', { recursive: true, force: true });
 const content = await loadCms({ url, token: process.env.DIRECTUS_READ_TOKEN });
 await mkdir('.cms', { recursive: true });
 await writeFile('.cms/content.json', JSON.stringify({ url, content }));
+const journal=await loadJournal({url,token:process.env.DIRECTUS_READ_TOKEN});
+await writeFile('.cms/journal.json',JSON.stringify({url,content:journal}));
 console.log(url ? `CMS ready: ${content.rows.length} texts, ${Object.keys(content.media).length} images.` : 'Using local website content.');

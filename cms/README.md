@@ -74,3 +74,9 @@ Les variables de publication restent dans Vercel ; le Flow restauré conserve so
 ## Images optimisées pour le site
 
 Le build produit les variantes WebP et AVIF des images fixes (largeur maximale 2560 px, sans agrandissement). Le logo est converti en WebP sans perte, jusqu’à 720 px. Seules ses marges entièrement transparentes sont retirées ; sa hauteur affichée suit `logo_size` (40 à 120 px, 80 par défaut), avec un aperçu identique dans le Studio. Les fichiers originaux Directus, le cadrage et le réglage cover/contain sont conservés. Les images animées restent dans leur format d’origine pour préserver leur animation. Les vidéos ne sont pas réencodées. Sharp limite le décodage à 64 mégapixels ; un fichier illisible ou trop grand bloque le nouveau build en conservant la version déjà publiée.
+
+## Rubriques éditoriales
+
+**Blog**, **Mi Book** et **Noticias** se gèrent depuis le Studio, avec activation indépendante, brouillons, publications et blocs texte/photo/vidéo. Voir [le guide du Studio](studio/README.md#blog-mi-book-y-noticias). Les pages et fichiers ne sont générés que pour les rubriques activées et les publications prêtes à publier. Les nouvelles rubriques restent désactivées jusqu’au choix de Jorge.
+
+Migration additive et idempotente : `railway run --no-local --service directus --environment production -- node cms/upgrade-journal.mjs`. Les collections sont incluses dans la base PostgreSQL et les médias dans le volume Directus existant.

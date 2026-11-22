@@ -1,8 +1,11 @@
 export const SITE_URL = 'https://www.eonovastudios.com';
+import {journalBuildPaths} from './journal.mjs';
+import {journalAlternates} from '../../cms/studio/public/journal-data.js';
 export const LANGUAGES = ['es', 'en', 'fr'];
 export const HOME_PATHS = {es:'/', en:'/en/', fr:'/fr/'};
 export const PRIVACY_PATHS = {es:'/aviso-de-privacidad/', en:'/en/privacy-policy/', fr:'/fr/confidentialite/'};
 export const PUBLIC_PATHS = [...Object.values(HOME_PATHS), ...Object.values(PRIVACY_PATHS)];
+export const publicPaths=()=>[...PUBLIC_PATHS,...journalBuildPaths()];
 
 // A production opt-in never makes a local build or a Vercel preview indexable.
 export const isIndexable = (env = process.env) => env.VERCEL_ENV === 'production' && env.SITE_INDEXABLE === 'true';
@@ -12,7 +15,7 @@ export function robotsText(env = process.env) {
     : 'User-agent: *\nDisallow: /\n';
 }
 export function alternateLinks(path) {
-  const group = Object.values(PRIVACY_PATHS).includes(path) ? PRIVACY_PATHS : HOME_PATHS;
+  const group = journalAlternates(path)?.paths || (Object.values(PRIVACY_PATHS).includes(path) ? PRIVACY_PATHS : HOME_PATHS);
   return [...LANGUAGES.map(lang => ({lang,url:SITE_URL+group[lang]})),{lang:'x-default',url:SITE_URL+group.es}];
 }
 const titles = {
@@ -30,11 +33,11 @@ const privacyDescriptions = {
   en:'How EON NOVA STUDIOS uses your information, hosts its website and processes conversations with Olivia AI.',
   fr:'Utilisation de vos données, hébergement du site et traitement des conversations avec Olivia IA chez EON NOVA STUDIOS.',
 };
-export function pageSeo({lang='es',legal=false,pageTitle,logo} = {}) {
+export function pageSeo({lang='es',legal=false,pageTitle,logo,path:customPath,description:customDescription} = {}) {
   if (!LANGUAGES.includes(lang)) throw new Error('Unsupported SEO language.');
-  const path=(legal?PRIVACY_PATHS:HOME_PATHS)[lang],url=SITE_URL+path;
+  const path=customPath||(legal?PRIVACY_PATHS:HOME_PATHS)[lang],url=SITE_URL+path;
   const title=pageTitle?`${pageTitle} · EON NOVA STUDIOS`:titles[lang];
-  const description=(legal?privacyDescriptions:descriptions)[lang];
+  const description=customDescription||(legal?privacyDescriptions:descriptions)[lang];
   const language={es:'es-MX',en:'en',fr:'fr'}[lang];
   const organization={'@type':'Organization','@id':SITE_URL+'/#organization',name:'EON NOVA STUDIOS',url:SITE_URL+'/',email:'info@eonovastudios.com',...(logo?{logo:new URL(logo,SITE_URL).href}:{})};
   return {url,title,description,alternates:alternateLinks(path),locale:{es:'es_MX',en:'en_US',fr:'fr_FR'}[lang],image:SITE_URL+'/og-image.png',imageAlt:'EON NOVA STUDIOS · Diseño digital & animación',schema:{

@@ -1,6 +1,7 @@
 import {readFile} from 'node:fs/promises';
 import {parse} from 'parse5';
-import {SITE_URL,PUBLIC_PATHS,alternateLinks,isIndexable,robotsText} from '../src/lib/seo.mjs';
+import {SITE_URL,publicPaths,alternateLinks,isIndexable,robotsText} from '../src/lib/seo.mjs';
+const PUBLIC_PATHS=publicPaths();
 const check=(test,message)=>{if(!test)throw new Error('SEO build check: '+message);};
 for(const path of PUBLIC_PATHS){
   const html=await readFile('dist'+path+'index.html','utf8'),nodes=[];

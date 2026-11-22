@@ -7,9 +7,9 @@ import {logoCss,logoStyle} from '../../cms/studio/public/logo.js';
 import OliviaAI from '../components/OliviaAI.astro';
 import '@fontsource-variable/dm-sans';
 import '@fontsource-variable/space-grotesk';
-const {lang = 'es', legal = false, pageTitle} = Astro.props;
+const {lang = 'es', legal = false, pageTitle,path,description} = Astro.props;
 const {media} = await getCms();
-const seo = pageSeo({lang,legal,pageTitle,logo:media.logo?.src});
+const seo = pageSeo({lang,legal,pageTitle,path,description,logo:media.logo?.src});
 const production = isIndexable();
 ---
 <!doctype html>

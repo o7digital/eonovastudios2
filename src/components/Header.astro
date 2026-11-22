@@ -1,7 +1,11 @@
 ---
 import Brand from './Brand.astro';
 import {home, privacy, languages} from '../i18n';
-const {lang = 'es', legal = false} = Astro.props;
+import {getJournal} from '../lib/journal.mjs';
+import {journalDefinitions,journalPath} from '../../cms/studio/public/journal-data.js';
+const {lang = 'es', legal = false,languagePaths} = Astro.props;
 const base = home(lang);
+const journal=await getJournal();
+const enabled=journalDefinitions.filter(d=>journal.sections.some(s=>s.id===d.id&&s.enabled));
 ---
-<header class="nav"><Brand lang={lang}/><nav aria-label="Principal"><a href={base + '#universos'}>Universos</a><a href={base + '#servicios'}>Servicios</a><a href={base + '#studio'}>El estudio</a><a href={base + '#contacto'}>Contacto</a></nav><div class="languages" aria-label="Language">{languages.map(l => <a href={legal ? privacy(l) : home(l)} lang={l} hreflang={l} aria-current={l === lang ? 'page' : undefined}>{l.toUpperCase()}</a>)}</div></header>
+<header class:list={['nav',{'has-journal':enabled.length>0}]}><Brand lang={lang}/><nav aria-label="Principal"><a href={base + '#universos'}>Universos</a><a href={base + '#servicios'}>Servicios</a><a href={base + '#studio'}>El estudio</a><a href={base + '#contacto'}>Contacto</a>{enabled.map(d=><a href={journalPath(d.id,lang)}>{d.labels[lang]}</a>)}</nav><div class="languages" aria-label="Language">{languages.map(l => <a href={languagePaths?.[l] || (legal ? privacy(l) : home(l))} lang={l} hreflang={l} aria-current={l === lang ? 'page' : undefined}>{l.toUpperCase()}</a>)}</div></header>
