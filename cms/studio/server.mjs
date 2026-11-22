@@ -130,7 +130,7 @@ export function createStudioServer(options = {}) {
         const data = await cms('/auth/login', null, 'POST', { email: input.email, password: input.password, mode: 'json' });
         const profile = await cms('/users/me?fields=id,email,first_name,last_name', data.access_token);
         const security = config.accountToken ? await cms(`/users/${profile.id}?fields=studio_password_temporary`,config.accountToken) : {};
-        setSession(res, { mustChangePassword: security.studio_password_temporary === true, access: data.access_token, refresh: data.refresh_token, accessUntil: Date.now() + data.expires, until: Date.now() + 8 * 3600000, id: profile.id });
+        setSession(res, { passwordTemporary: security.studio_password_temporary === true, access: data.access_token, refresh: data.refresh_token, accessUntil: Date.now() + data.expires, until: Date.now() + 8 * 3600000, id: profile.id });
         return send(res, { ok: true });
       }
       if (path === '/api/logout' && req.method === 'POST') {
@@ -160,10 +160,9 @@ export function createStudioServer(options = {}) {
         let fresh;
         try { fresh=await cms('/auth/login',null,'POST',{email:profile.email,password:input.newPassword,mode:'json'}); }
         catch { setSession(res,null);return send(res,{ok:true,reauthenticate:true,message:'Tu contraseña se actualizó. Inicia sesión con tu nueva contraseña.'}); }
-        setSession(res,{access:fresh.access_token,refresh:fresh.refresh_token,accessUntil:Date.now()+fresh.expires,until:Date.now()+8*3600000,id:s.id,mustChangePassword:false});
+        setSession(res,{access:fresh.access_token,refresh:fresh.refresh_token,accessUntil:Date.now()+fresh.expires,until:Date.now()+8*3600000,id:s.id,passwordTemporary:false});
         return send(res,{ok:true,message:'Tu contraseña se actualizó. Ya puedes usar tu Studio.'});
       }
-      if (s.mustChangePassword && path !== '/api/bootstrap') throw new ApiError(409,'Cambia tu contraseña temporal en Mi cuenta para activar tu Studio.');
       if(await workspace.handle({path,url,req,res,s,jsonBody,send,body}))return;
       if (path === '/api/preview' && req.method === 'GET') {
         const lang = url.searchParams.get('lang') || 'es';
@@ -183,8 +182,8 @@ export function createStudioServer(options = {}) {
           cms('/permissions/me', s.access),
         ]);
         const permission = rights?.site_texts?.update;
-        return send(res, { profile: { email: profile.email, name: [profile.first_name, profile.last_name].filter(Boolean).join(' '), mustChangePassword: s.mustChangePassword === true }, texts, media,
-          website: config.website, workspaceReady:workspace.ready(), publishReady: config.publishEnabled && Boolean(config.publishSecret), canEdit: !s.mustChangePassword && (permission?.access === 'full' || permission?.access === 'partial' || permission?.access === true) });
+        return send(res, { profile: { email: profile.email, name: [profile.first_name, profile.last_name].filter(Boolean).join(' '), passwordTemporary: s.passwordTemporary === true || s.mustChangePassword === true }, texts, media,
+          website: config.website, workspaceReady:workspace.ready(), publishReady: config.publishEnabled && Boolean(config.publishSecret), canEdit: permission?.access === 'full' || permission?.access === 'partial' || permission?.access === true });
       }
       const textId = path.match(/^\/api\/texts\/([a-f\d-]{36})$/i)?.[1];
       if (path === '/api/texts' && req.method === 'PATCH') {

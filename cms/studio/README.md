@@ -103,7 +103,7 @@ Les contrôles Firefox ont couvert une édition enregistrée puis restaurée, un
 
 Chaque personne utilise son propre compte Directus. Le rôle **EON Studio editor** gère les textes, médias et rendez-vous, sans accès administrateur à Directus. L'adresse `STUDIO_OWNER_EMAIL` désigne la personne qui utilise les contacts et communications EON dans le Studio ; le compte technique O7 reste distinct.
 
-Le menu **Mi cuenta** permet de remplacer son mot de passe avec vérification du mot de passe actuel et double saisie du nouveau (12 à 128 caractères). Les comptes créés avec `studio_password_temporary=true` doivent choisir leur mot de passe personnel à la première connexion avant d'accéder aux fonctions du Studio. Le serveur vérifie ce statut depuis un cookie chiffré ; une modification de l'URL ne permet pas de contourner cette étape. Le changement renouvelle la session et efface le statut temporaire.
+Le menu **Mi cuenta** permet de remplacer son mot de passe avec vérification du mot de passe actuel et double saisie du nouveau (12 à 128 caractères). Les comptes créés avec `studio_password_temporary=true` peuvent utiliser toutes les fonctions autorisées du Studio immédiatement, sans changement de mot de passe imposé. Le titulaire peut choisir son mot de passe personnel quand il le souhaite dans **Mi cuenta**. Le changement renouvelle la session et efface le statut temporaire.
 
 Préparation idempotente du champ, des rôles et de la connexion serveur :
 

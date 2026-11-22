@@ -12,7 +12,7 @@ async function api(path,method='GET',body){
 }
 const session=await api('/auth/login','POST',{email:process.env.ADMIN_EMAIL,password:process.env.ADMIN_PASSWORD,mode:'json'});token=session.access_token;
 try{
- if(!(await api('/fields/directus_users')).some(field=>field.field==='studio_password_temporary'))await api('/fields/directus_users','POST',{field:'studio_password_temporary',type:'boolean',schema:{default_value:false,is_nullable:false},meta:{interface:'boolean',hidden:true,note:'Require a personal password before entering EON Studio.'}});
+ if(!(await api('/fields/directus_users')).some(field=>field.field==='studio_password_temporary'))await api('/fields/directus_users','POST',{field:'studio_password_temporary',type:'boolean',schema:{default_value:false,is_nullable:false},meta:{interface:'boolean',hidden:true,note:'Temporary password; the user can replace it in Mi cuenta without restricting Studio access.'}});
  let policy=(await api('/policies?limit=-1')).find(row=>row.name==='EON Studio editor');
  if(!policy)policy=await api('/policies','POST',{name:'EON Studio editor',icon:'edit',admin_access:false,app_access:true});
  else await api('/policies/'+policy.id,'PATCH',{app_access:true});

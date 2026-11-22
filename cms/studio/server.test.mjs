@@ -95,13 +95,13 @@ test('visual preview requires authentication, fixes its target, and disables scr
 });
 
 
-test('temporary accounts must change their password; verified changes target only the signed-in user',async t=>{
+test('temporary passwords allow Studio access and optional verified changes target only the signed-in user',async t=>{
  const {request,login,calls}=await fixture(t,{accounts:true,temporary:true});
  const cookie=(await login()).headers.get('set-cookie').split(';')[0];
  const headers={Cookie:cookie};
  const bootstrap=await(await request('/api/bootstrap',{headers})).json();
- assert.equal(bootstrap.profile.mustChangePassword,true);assert.equal(bootstrap.canEdit,false);
- assert.equal((await request('/api/texts',{method:'PATCH',headers,body:JSON.stringify({items:[{id,es:'blocked'}]})})).status,409);
+ assert.equal(bootstrap.profile.passwordTemporary,true);assert.equal(bootstrap.canEdit,true);
+ assert.equal((await request('/api/texts',{method:'PATCH',headers,body:JSON.stringify({items:[{id,es:'Temporary account edit'}]})})).status,200);
  assert.equal((await request('/api/account/password',{method:'POST',headers:{...headers,Origin:'https://forged.example'},body:'{}'})).status,403);
  const changed=await request('/api/account/password',{method:'POST',headers,body:JSON.stringify({currentPassword:'private-password',newPassword:'my-new-private-password'})});
  assert.equal(changed.status,200);assert.equal((await changed.json()).ok,true);
@@ -110,7 +110,7 @@ test('temporary accounts must change their password; verified changes target onl
  assert.equal(written.headers.Authorization,'Bearer private-account-writer');
  const newCookie=changed.headers.get('set-cookie');assert.match(newCookie,/HttpOnly/);assert.ok(!newCookie.includes('my-new-private-password'));
  const unlocked=await(await request('/api/bootstrap',{headers:{Cookie:newCookie.split(';')[0]}})).json();
- assert.equal(unlocked.profile.mustChangePassword,false);assert.equal(unlocked.canEdit,true);
+ assert.equal(unlocked.profile.passwordTemporary,false);assert.equal(unlocked.canEdit,true);
 });
 
 test('account password changes reject injected targets, short passwords and incorrect current passwords before writing',async t=>{
