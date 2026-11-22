@@ -1,0 +1,22 @@
+---
+import {contactCopy} from '../lib/contact-copy.mjs';
+import {privacy} from '../i18n';
+const {lang='es'}=Astro.props;
+const copy=contactCopy[lang as 'es'|'en'|'fr'];
+---
+<form class="contact-form" data-contact-form data-language={lang} action="https://formspree.io/f/mrpqogbn" method="post" novalidate>
+  <div class="contact-form-row">
+    <div class="contact-field"><label for="contact-name">{copy.name} <span aria-hidden="true">*</span></label><input id="contact-name" name="name" autocomplete="name" maxlength="120" required aria-describedby="contact-name-error"/><span id="contact-name-error" class="contact-field-error" hidden></span></div>
+    <div class="contact-field"><label for="contact-email">{copy.email} <span aria-hidden="true">*</span></label><input id="contact-email" name="email" type="email" autocomplete="email" maxlength="254" required aria-describedby="contact-email-error"/><span id="contact-email-error" class="contact-field-error" hidden></span></div>
+  </div>
+  <div class="contact-field"><label for="contact-phone">{copy.phone}</label><input id="contact-phone" name="phone" type="tel" autocomplete="tel" maxlength="40" aria-describedby="contact-phone-error"/><span id="contact-phone-error" class="contact-field-error" hidden></span></div>
+  <div class="contact-field"><label for="contact-message">{copy.message} <span aria-hidden="true">*</span></label><textarea id="contact-message" name="message" rows="6" maxlength="4000" placeholder={copy.placeholder} required aria-describedby="contact-message-error"></textarea><span id="contact-message-error" class="contact-field-error" hidden></span></div>
+  <div class="contact-trap" aria-hidden="true"><label for="contact-website">Website</label><input id="contact-website" name="_gotcha" tabindex="-1" autocomplete="off"/></div>
+  <div class="contact-consent"><label for="contact-consent"><input id="contact-consent" name="consent" type="checkbox" required aria-describedby="contact-consent-error"/><span>{copy.consent} <a href={privacy(lang)}>{copy.privacy} ↗</a></span></label><span id="contact-consent-error" class="contact-field-error" hidden></span></div>
+  <button class="pill light contact-submit" type="submit"><span data-submit-label>{copy.submit}</span><span aria-hidden="true">↗</span></button>
+  <p class="contact-form-status" data-contact-status role="status" aria-live="polite" tabindex="-1" hidden></p>
+  <input type="hidden" name="_subject" value="EON NOVA Studios · Nuevo mensaje de contacto"/>
+  <input type="hidden" name="language" value={lang}/>
+  <noscript><p><a href="mailto:info@eonovastudios.com">info@eonovastudios.com ↗</a></p></noscript>
+</form>
+<script>import '../scripts/contact-form.js';</script>
